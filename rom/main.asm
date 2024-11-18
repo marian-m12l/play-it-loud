@@ -85,6 +85,18 @@ Init:
 	ld hl, _SCRN0+4+(SCRN_VX_B*11)
 	CopyData
 
+	; FIXME For some reason, audio playback gets all broken if we don't add a sprite ??!
+	ld hl, _OAMRAM 		; HL=$FE00
+	ld [hl], 40 		; OAM sprite Y = 40
+	inc l
+	ld a, 50
+	ld [hl], a			; OAM sprite X = 50 and onward
+	inc l
+	ld a, " "
+	ld [hl], a 			; OAM sprite tile = character
+	inc l
+	ld [hl], $00 		; OAM sprite attributes = 0
+
 	ld a, %10010011		; Screen on, Background on, tiles at $8000
 	ldh [rLCDC], a
 

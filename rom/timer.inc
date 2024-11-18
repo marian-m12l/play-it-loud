@@ -1,11 +1,10 @@
 ; Original work by jbshelton: https://github.com/jbshelton/GBAudioPlayer
 
-DEF workVar1 EQU $81
-DEF workVar0 EQU $80
+DEF workVar1 EQU $F8
+DEF workVar0 EQU $F7
 
 MACRO PlaybackTimerInit
-	; FIXME Playback high RAM variables ($F8, $F7) should defined!!
-	xor a
+	ld a, $80
 	ldh [workVar1], a	; Reset variable (in High RAM) used in PCM player ???
 	ldh [workVar0], a	; Reset variable (in High RAM) used in PCM player ???
 	ld a, $D6		; Timer / playback rate 6241.52380952Hz (262144 / 42)
