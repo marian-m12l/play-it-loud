@@ -1,4 +1,4 @@
-// Original work by jbshelton: https://github.com/jbshelton/GBAudioPlayer
+; Original work by jbshelton: https://github.com/jbshelton/GBAudioPlayer
 
 MACRO PlaybackAudioInit
 	xor a

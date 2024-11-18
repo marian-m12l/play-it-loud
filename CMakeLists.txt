@@ -17,4 +17,5 @@ pico_sdk_init()
 
 add_subdirectory(gb_serial)
 add_subdirectory(player_sine)
+add_subdirectory(player_bt)
 add_subdirectory(rom)

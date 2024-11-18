@@ -1,4 +1,4 @@
-// Original work by jbshelton: https://github.com/jbshelton/GBAudioPlayer
+; Original work by jbshelton: https://github.com/jbshelton/GBAudioPlayer
 
 DEF workVar1 EQU $81
 DEF workVar0 EQU $80

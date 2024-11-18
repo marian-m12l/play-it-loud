@@ -1,3 +1,4 @@
+#include <string.h>
 #include "hardware/dma.h"
 #include "hardware/pio.h"
 #include "spi.pio.h"
@@ -13,14 +14,14 @@
 #define PLAYBACK_SAMPLE_DURATION_US (1000000/PLAYBACK_RATE)
 
 // TODO Make buffer configurable at build time ??
-// TODO Triple buffers !!
 #define BUFFER_SIZE 74
 #define EXPECTED_SAMPLES (DECIMATE_FACTOR*BUFFER_SIZE)
 unsigned char playback_buffer_0[BUFFER_SIZE];
 unsigned char playback_buffer_1[BUFFER_SIZE];
+unsigned char playback_buffer_2[BUFFER_SIZE];
 
 unsigned char* filling_buffer = playback_buffer_0;
-unsigned char* playback_buffer = playback_buffer_1;
+unsigned char* playback_buffer = playback_buffer_2;
 
 downsampler_t downsampler_instance;
 encoder_t encoder_instance;
@@ -36,6 +37,8 @@ uint sm = 0;
 void swap_buffers(unsigned char** buffer) {
     if (*buffer == playback_buffer_0) {
         *buffer = playback_buffer_1;
+    } else if (*buffer == playback_buffer_1) {
+        *buffer = playback_buffer_2;
     } else {
         *buffer = playback_buffer_0;
     }
@@ -134,4 +137,10 @@ void gb_serial_fill_buffer(int16_t* samples) {
 
     // Swap buffers
     swap_buffers(&filling_buffer);
+}
+
+void gb_serial_clear_buffers() {
+    memset(playback_buffer_0, 0, BUFFER_SIZE);
+    memset(playback_buffer_1, 0, BUFFER_SIZE);
+    memset(playback_buffer_2, 0, BUFFER_SIZE);
 }
