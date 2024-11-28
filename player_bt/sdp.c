@@ -23,6 +23,7 @@ static void sdp_register_player() {
     // We send Category 1 commands to the media player, e.g. play/pause
     memset(sdp_avrcp_controller_service_buffer, 0, sizeof(sdp_avrcp_controller_service_buffer));
     uint16_t controller_supported_features = 1 << AVRCP_CONTROLLER_SUPPORTED_FEATURE_CATEGORY_PLAYER_OR_RECORDER;
+    controller_supported_features |= 1 << AVRCP_CONTROLLER_SUPPORTED_FEATURE_COVER_ART_GET_LINKED_THUMBNAIL;
     avrcp_controller_create_sdp_record(sdp_avrcp_controller_service_buffer, 
         sdp_create_service_record_handle(), controller_supported_features, NULL, NULL);
     sdp_register_service(sdp_avrcp_controller_service_buffer);

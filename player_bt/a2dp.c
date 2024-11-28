@@ -170,6 +170,7 @@ static void media_processing_start(void) {
     // setup audio playback
     const btstack_audio_sink_t * audio = btstack_audio_sink_get_instance();
     if (audio){
+        // TODO Wait for AVRCP to fetch coverart ?
         audio->start_stream();
     }
     _audio_stream_started = true;
