@@ -3,6 +3,7 @@ project(${PROJECT_NAME} C CXX ASM)
 
 add_library(${PROJECT_NAME}
     gb_serial.c
+    gb_audio.c
     downsampler.c
     encoder.c
 )
