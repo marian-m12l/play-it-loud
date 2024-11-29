@@ -6,6 +6,7 @@ add_library(${PROJECT_NAME}
     gb_audio.c
     downsampler.c
     encoder.c
+    gb_gfx.c
 )
 
 # Add PIO source files

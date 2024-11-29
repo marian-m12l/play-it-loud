@@ -9,4 +9,6 @@ uint8_t avrcp_get_volume();  // 0..127
 bool avrcp_is_connected();
 bool avrcp_is_playing();
 
+bool avrcp_is_ready();
+
 #endif

@@ -23,6 +23,7 @@ target_link_libraries(${PROJECT_NAME}
     pico_btstack_cyw43
     pico_cyw43_arch_none
     gb_serial
+    jpegdec
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE

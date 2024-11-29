@@ -29,14 +29,6 @@ ENDR
 
 SECTION "Game code", ROM0[$150]
 
-ResetGame:
-	; Disable sound
-	xor a
-	ldh [rNR52], a
-
-	; Clear requested/unserviced interrupts
-	ldh [rIF], a
-
 Start:
 	di
 	xor a
@@ -80,19 +72,76 @@ Init:
 	ld hl, vFontTiles	; Copy to tiles 0x20-0x3f
 	CopyFont1bpp
 
-	; TODO Clear screen (on DMG, Nintendo Logo stays on)
-
 	; Copy cover tilemap
 	ld bc, CoverTilemapDataEnd-CoverTilemapData
 	ld de, CoverTilemapData
 	ld hl, _SCRN0
 	CopyData
 
+	; Copy logo tiles
+	ld bc, TilesLogoDataEnd-TilesLogoData
+	ld de, TilesLogoData
+	ld hl, vCoverTiles
+	CopyData
+	
+	; Show title
+	ld bc, TitleDataEnd-TitleData
+	ld de, TitleData
+	ld hl, _SCRN0+1+(SCRN_VX_B*15)
+	CopyData
+
+	ld a, %10010011		; Screen on, Background on, tiles at $8000
+	ldh [rLCDC], a
+
+	; Wait for "new track" signal on serial
+WaitForNewTrack:
+	; Enable serial external clock / wait for incoming serial data
+	ld a, $80
+	ldh [rSC], a
+
+	; Actively wait for incoming data rSC bit 7 is cleared when data is received
+:
+	ld a, [rSC]
+	and $80
+	jr nz, :-
+
+	; Read received data
+	ldh a, [rSB]
+	
+	; Trigger reset
+	cp $f1
+	jp z, NewTrack
+	
+	; Loop
+	jr nz, WaitForNewTrack
+
+
+NewTrack:
+	di				; Disable interrupts
+	
+	xor a
+	ldh [rNR52], a	; Disable sound
+
+	ldh [rIF], a	; Clear requested/unserviced interrupts
+
+	ldh [rIE], a	; All interrupts OFF
+	ld sp, $FFFF	; Set stack pointer
+
+.waitvbl:
+	ldh a, [rLY]	; Read current line
+	cp 144
+	jr c, .waitvbl	; Loop if line 144 not reached
+
+	xor a
+	ldh [rLCDC], a 	; Disable display
+
+UpdateCover:
 	; Get cover tiles from serial: read 14*13*16=2912 bytes
 	ld bc, vCoverTilesEnd-vCoverTiles
 	ld hl, vCoverTiles
 	CopyDataFromSerial
 
+UpdateMetadata:
 	; Get 18 character tilemap for artist
 	ld bc, 18
 	ld hl, _SCRN0+1+(SCRN_VX_B*15)
@@ -133,8 +182,12 @@ TilesFontData:
 	chr_IBMPC1	2,3
 TilesFontDataEnd:
 
+TilesLogoData:
+	INCBIN "logo.2bpp"
+TilesLogoDataEnd:
+
 TitleData:
-	db "PLAY IT LOUD"
+	db $00, $00, $00, "P"-$20, "L"-$20, "A"-$20, "Y"-$20, $00, "I"-$20, "T"-$20, $00, "L"-$20, "O"-$20, "U"-$20, "D"-$20, $00, $00, $00
 TitleDataEnd:
 
 CoverTilemapData:

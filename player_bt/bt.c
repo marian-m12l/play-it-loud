@@ -5,6 +5,7 @@
 #include "sdp.h"
 #include "a2dp.h"
 #include "avrcp.h"
+#include "gb_serial.h"
 
 #include <hci.h>
 #include "l2cap.h"
@@ -62,6 +63,8 @@ void bt_begin( const char *name, const char *pin, bt_on_up_cb_t cb, void *data )
 
     a2dp_sink_begin();
     avrcp_begin();
+
+    gb_serial_init();
 
     gap_set_local_name(_name);
     gap_discoverable_control(1); 

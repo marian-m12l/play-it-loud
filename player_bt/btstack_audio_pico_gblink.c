@@ -10,7 +10,9 @@
 #include "btstack_audio.h"
 #include "btstack_run_loop.h"
 
-#include "gb_serial.h"
+#include "gb_audio.h"
+#include "a2dp.h"
+#include "avrcp.h"
 
 
 #define DRIVER_POLL_INTERVAL_MS   5
@@ -24,8 +26,6 @@ static btstack_timer_source_t  driver_timer_sink;
 static bool btstack_audio_pico_sink_active;
 static uint8_t btstack_audio_pico_channel_count;
 
-bool dma_started = false;
-
 
 static int btstack_audio_pico_sink_init(uint8_t channels, uint32_t samplerate, void (*playback)(int16_t * buffer, uint16_t num_samples)) {
     btstack_assert(playback != NULL);
@@ -36,17 +36,14 @@ static int btstack_audio_pico_sink_init(uint8_t channels, uint32_t samplerate, v
     // num channels requested by application
     btstack_audio_pico_channel_count = channels;
 
-    // Configure audio playback
-    gb_serial_init();
-
     return 0;
 }
 
 static void btstack_audio_pico_sink_fill_buffers(void) {
     int expected;
-    while (expected = gb_serial_needs_samples()) {
+    while (expected = gb_audio_streaming_needs_samples()) {
         int16_t *samples = malloc(sizeof(int16_t) * btstack_audio_pico_channel_count * expected);
-        (*playback_callback)(samples, expected);  // TODO expected == SAMPLES_PER_BUFFER / 512 ?
+        (*playback_callback)(samples, expected);
 
         // Mix samples to mono
         if (btstack_audio_pico_channel_count == 2) {
@@ -56,7 +53,7 @@ static void btstack_audio_pico_sink_fill_buffers(void) {
             }
         }
 
-        gb_serial_fill_buffer(samples);
+        gb_audio_streaming_fill_buffer(samples);
         free(samples);
     }
 }
@@ -77,41 +74,57 @@ static void btstack_audio_pico_sink_set_volume(uint8_t volume) {
 static void btstack_audio_pico_sink_start_stream(void) {
     printf("Start streaming over GB Link\n");
 
-    // pre-fill HAL buffers
-    btstack_audio_pico_sink_fill_buffers();
+    if (!avrcp_is_ready()) {
+        printf("AVRCP is not ready for audio samples streaming: don't stream yet\n");
+    }
+    if (!a2dp_is_ready()) {
+        printf("A2DP is not ready for audio samples streaming: don't stream yet\n");
+    }
+    if (avrcp_is_ready() && a2dp_is_ready()) {
+        printf("All systems are go: stream audio samples\n");
 
-    // start timer
-    btstack_run_loop_set_timer_handler(&driver_timer_sink, &driver_timer_handler_sink);
-    btstack_run_loop_set_timer(&driver_timer_sink, DRIVER_POLL_INTERVAL_MS);
-    btstack_run_loop_add_timer(&driver_timer_sink);
+        // start timer to fill audio buffers
+        btstack_run_loop_set_timer_handler(&driver_timer_sink, &driver_timer_handler_sink);
+        btstack_run_loop_set_timer(&driver_timer_sink, DRIVER_POLL_INTERVAL_MS);
+        btstack_run_loop_add_timer(&driver_timer_sink);
 
-    // state
-    btstack_audio_pico_sink_active = true;
-
-    // TODO Should be handled by the gb_serial lib?
-    if (dma_started) {
-        printf("DMA is already running");
-        // TODO Reset buffers and restart transfers?
-    } else {
-        printf("Starting DMA\n");
+        // state
+        btstack_audio_pico_sink_active = true;
 
         // Start streaming
-        gb_serial_start();
+        gb_audio_streaming_start();
 
-        dma_started = true;
+        // FIXME Need to pre-fill _after_ audio stream started, otherwise downsampler and encoder are not initialized
+        // pre-fill HAL buffers
+        btstack_audio_pico_sink_fill_buffers();
+        printf("Buffers pre-filled\n");
+
     }
+}
+
+static void driver_timer_handler_clear(btstack_timer_source_t * ts) {
+    // Stop streaming
+    printf("Actually stop streaming over GB Link\n");
+    gb_audio_streaming_stop();
+    //btstack_run_loop_remove_timer(&driver_timer_sink);
 }
 
 static void btstack_audio_pico_sink_stop_stream(void) {
     printf("Stop streaming over GB Link\n");
 
-    // Clear buffers
-    gb_serial_clear_buffers();
-
     // stop timer
     btstack_run_loop_remove_timer(&driver_timer_sink);
     // state
     btstack_audio_pico_sink_active = false;
+
+    // Clear buffers
+    printf("Clear buffer and wait for the GB buffers to fill with blank audio (~350ms)\n");
+    gb_audio_streaming_clear_buffers();
+    
+    // Setup a one-time timer to actually stop audio streaming once wer're done
+    btstack_run_loop_set_timer_handler(&driver_timer_sink, &driver_timer_handler_clear);
+    btstack_run_loop_set_timer(&driver_timer_sink, 350);
+    btstack_run_loop_add_timer(&driver_timer_sink);
 }
 
 static void btstack_audio_pico_sink_close(void) {

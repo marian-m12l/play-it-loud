@@ -19,7 +19,7 @@ MACRO PlaybackSerialISR
 
 	; Trigger reset
 	cp $f1
-	jp z, ResetGame
+	jp z, NewTrack
 
 	; Copy to destination
 	ld [bc], a						;[2]
