@@ -12,6 +12,7 @@ bool gb_audio_new_track_step3_done();
 
 void gb_audio_streaming_start();
 void gb_audio_streaming_stop();
+bool gb_audio_streaming_is_busy();
 int gb_audio_streaming_needs_samples();
 void gb_audio_streaming_fill_buffer(int16_t* samples);
 void gb_audio_streaming_clear_buffers();

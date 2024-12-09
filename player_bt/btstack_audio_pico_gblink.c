@@ -110,6 +110,11 @@ static void driver_timer_handler_clear(btstack_timer_source_t * ts) {
 }
 
 static void btstack_audio_pico_sink_stop_stream(void) {
+    if (!btstack_audio_pico_sink_active) {
+        printf("No need to stop streaming over GB Link: not currently streaming\n");
+        return;
+    }
+    
     printf("Stop streaming over GB Link\n");
 
     // stop timer
@@ -121,7 +126,7 @@ static void btstack_audio_pico_sink_stop_stream(void) {
     printf("Clear buffer and wait for the GB buffers to fill with blank audio (~350ms)\n");
     gb_audio_streaming_clear_buffers();
     
-    // Setup a one-time timer to actually stop audio streaming once wer're done
+    // Setup a one-time timer to actually stop audio streaming once we're done
     btstack_run_loop_set_timer_handler(&driver_timer_sink, &driver_timer_handler_clear);
     btstack_run_loop_set_timer(&driver_timer_sink, 350);
     btstack_run_loop_add_timer(&driver_timer_sink);

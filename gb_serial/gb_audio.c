@@ -89,6 +89,10 @@ void gb_audio_streaming_stop() {
     gb_serial_streaming_stop();
 }
 
+bool gb_audio_streaming_is_busy() {
+    return gb_serial_streaming_is_busy();
+}
+
 int gb_audio_streaming_needs_samples() {
     return (filling_buffer != playback_buffer) ? EXPECTED_SAMPLES : 0;
 }
