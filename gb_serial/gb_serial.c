@@ -98,7 +98,7 @@ bool gb_serial_streaming_is_busy() {
     return _source != NULL;
 }
 
-void gb_serial_immediate_transfer(uint8_t* data, uint16_t length) {
+void gb_serial_immediate_transfer(const uint8_t* data, uint16_t length) {
     // Start transfer
     dma_channel_transfer_from_buffer_now(dma_channel_tx, data, length);
 }

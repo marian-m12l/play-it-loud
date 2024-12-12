@@ -18,6 +18,6 @@ void gb_serial_streaming_start(gb_serial_source_t* source);
 void gb_serial_streaming_stop();
 bool gb_serial_streaming_is_busy();
 
-void gb_serial_immediate_transfer(uint8_t* data, uint16_t length);
+void gb_serial_immediate_transfer(const uint8_t* data, uint16_t length);
 
 bool gb_serial_transfer_done();

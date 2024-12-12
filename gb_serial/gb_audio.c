@@ -55,13 +55,13 @@ void gb_audio_new_track_step1() {
 bool gb_audio_new_track_step1_done() {
     return gb_serial_transfer_done() && (time_us_64() - timestamp) > RESET_TRIGGER_DELAY_MS*1000;
 }
-void gb_audio_new_track_step2(uint8_t* cover_tiles) {
+void gb_audio_new_track_step2(const uint8_t* cover_tiles) {
     gb_serial_immediate_transfer(cover_tiles, COVER_TILES_BYTES);
 }
 bool gb_audio_new_track_step2_done() {
     return gb_serial_transfer_done();
 }
-void gb_audio_new_track_step3(char* artist, char* title) {
+void gb_audio_new_track_step3(const char* artist, const char* title) {
     // Characters must be uppercased and shifted -0x20 because char tiles are available as 0x00-0x3f (mapped to 0x20-0x5f ascii)
     memset(metadata, ' ', METADATA_LENGTH);
     int len = strlen(artist);
