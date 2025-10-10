@@ -20,6 +20,6 @@ add_custom_command(
   TARGET ${PROJECT_NAME}.gb
   POST_BUILD
   COMMAND rgblink -o ${PROJECT_NAME}.gb -m ${PROJECT_NAME}.map -n ${PROJECT_NAME}.sym ${PROJECT_NAME}.o
-  COMMAND rgbfix -v -m 0x01 -c -p 0 ${PROJECT_NAME}.gb
+  COMMAND rgbfix -v -m 0 -c -p 0 -t "PLAY IT LOUD!" ${PROJECT_NAME}.gb
   BYPRODUCTS ${PROJECT_NAME}.map ${PROJECT_NAME}.sym
   VERBATIM)
