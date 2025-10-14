@@ -46,7 +46,11 @@ void gb_serial_init() {
     channel_config_set_transfer_data_size(&dma_config_tx, DMA_SIZE_8);
     // Triggered by timer
     dma_timer = dma_claim_unused_timer(true);
-    dma_timer_set_fraction(dma_timer, 3, 60088);  // 125000000*3/60088 = 6240.8467...Hz
+#if ENABLE_DOUBLE_SPEED == 1
+    dma_timer_set_fraction(dma_timer, 5, 38147);  // 125000000*5/38147 = 16383.988256Hz
+#else
+    dma_timer_set_fraction(dma_timer, 4, 61035);  // 125000000*4/61035 = 8192.02097157Hz
+#endif
     int treq = dma_get_timer_dreq(dma_timer);
     channel_config_set_dreq(&dma_config_tx, treq);
     dma_channel_configure(dma_channel_tx, &dma_config_tx,

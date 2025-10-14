@@ -1,16 +1,16 @@
 ; Original work by jbshelton: https://github.com/jbshelton/GBAudioPlayer
 
-DEF workVar1 EQU $F8
-DEF workVar0 EQU $F7
+DEF workVar1 EQU $FFF8
+DEF workVar0 EQU $FFF7
 
 MACRO PlaybackTimerInit
 	ld a, $80
 	ldh [workVar1], a	; Reset variable (in High RAM) used in PCM player ???
 	ldh [workVar0], a	; Reset variable (in High RAM) used in PCM player ???
-	ld a, $D6		; Timer / playback rate 6241.52380952Hz (262144 / 42)
+	ld a, $E0		; Timer / playback rate 8192Hz (262144 / 32) / 16384Hz (524288 / 32)
 	ldh [rTMA], a	; Timer modulo --> When TIMA overflows, it is reset to the value in this register and an interrupt is requested. Example of use: if TMA is set to $FF, an interrupt is requested at the clock frequency selected in TAC (because every increment is an overflow). However, if TMA is set to $FE, an interrupt is only requested every two increments, which effectively divides the selected clock by two. Setting TMA to $FD would divide the clock by three, and so on.
 	ld a, %00000101
-	ldh [rTAC], a	; Enable timer @ CPU clock / 16 (Normal Speed 262144 Hz)
+	ldh [rTAC], a	; Enable timer @ CPU clock / 16 (Normal Speed 262144 Hz / CGB Double Speed --> 524288 Hz)
 	ldh a, [rIE]	; Read enabled interrupts
 	or a, $04		; Enable timer interrupt
 	ldh [rIE], a

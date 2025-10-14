@@ -238,6 +238,12 @@ int main() {
 
     printf("Sine Wave Player\n");
 
+#if ENABLE_DOUBLE_SPEED == 1
+    printf("Playback rate: 16384Hz\n");
+#else
+    printf("Playback rate: 8192Hz\n");
+#endif
+
     // Prepare sine samples
     for (int i = 0; i < SINE_WAVE_TABLE_LEN; i++) {
         sine_wave_table[i] = 32767 * cosf(i * 2 * (float) (M_PI / SINE_WAVE_TABLE_LEN));

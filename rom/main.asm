@@ -35,6 +35,17 @@ Start:
 	ldh [rIE], a	; All interrupts OFF
 	ld sp, $FFFF	; Set stack pointer
 
+IF __ENABLE_DOUBLE_SPEED__ == 1
+	; Switch to double speed
+	ld a, $30
+	ldh [rP1], a
+	ld a, $01
+	ldh [rKEY1], a
+	stop
+	nop
+	nop
+ENDC
+
 .waitvbl:
 	ldh a, [rLY]	; Read current line
 	cp 144

@@ -15,8 +15,16 @@ set(CMAKE_CXX_STANDARD 17)
 # Initialize the Pico SDK
 pico_sdk_init()
 
+# Set playback rate
+if(NOT ENABLE_DOUBLE_SPEED)
+    set(ENABLE_DOUBLE_SPEED 0)
+endif()
+add_compile_definitions(ENABLE_DOUBLE_SPEED=${ENABLE_DOUBLE_SPEED})
+
 add_subdirectory(gb_serial)
 add_subdirectory(jpegdec)
 add_subdirectory(player_sine)
 add_subdirectory(player_bt)
 add_subdirectory(rom)
+
+unset(ENABLE_DOUBLE_SPEED CACHE)

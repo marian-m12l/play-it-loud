@@ -9,10 +9,12 @@
 #include "gb_audio.h"
 
 #define INPUT_SAMPLE_RATE 44100
-#define DECIMATE_FACTOR 7
-#define TARGET_SAMPLE_RATE (INPUT_SAMPLE_RATE/DECIMATE_FACTOR)
-#define PLAYBACK_RATE (256*1024/42)
-#define PLAYBACK_SAMPLE_DURATION_US (1000000/PLAYBACK_RATE)
+
+#if ENABLE_DOUBLE_SPEED == 1
+#define OUTPUT_SAMPLE_RATE 16384
+#else
+#define OUTPUT_SAMPLE_RATE 8192
+#endif
 
 #define COVER_TILES_BYTES (14*13*16)
 #define RESET_TRIGGER_DELAY_MS 100
@@ -20,7 +22,7 @@
 
 #define BUFFER_SIZE 74
 #define BUFFER_COUNT 3
-#define EXPECTED_SAMPLES (DECIMATE_FACTOR*BUFFER_SIZE)
+#define EXPECTED_SAMPLES ((int)((1.0*INPUT_SAMPLE_RATE/OUTPUT_SAMPLE_RATE)*BUFFER_SIZE))
 unsigned char samples_buffers[BUFFER_COUNT][BUFFER_SIZE];
 
 int filling_buffer = 0;
@@ -80,7 +82,7 @@ bool gb_audio_new_track_step3_done() {
 }
 
 void gb_audio_streaming_start() {
-    downsample_init(&downsampler_instance, INPUT_SAMPLE_RATE, DECIMATE_FACTOR);
+    downsample_init(&downsampler_instance, INPUT_SAMPLE_RATE, OUTPUT_SAMPLE_RATE);
     encode_init(&encoder_instance);
     gb_serial_streaming_start(&source);
 }
