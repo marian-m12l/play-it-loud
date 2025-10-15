@@ -100,6 +100,14 @@ Init:
 	ld de, TitleData
 	ld hl, _SCRN0+1+(SCRN_VX_B*15)
 	CopyData
+	
+IF __DEBUG__ == 1
+	; Show playback rate
+	ld bc, PlaybackRateDataEnd-PlaybackRateData
+	ld de, PlaybackRateData
+	ld hl, _SCRN0+1+(SCRN_VX_B*16)
+	CopyData
+ENDC
 
 	ld a, %10010011		; Screen on, Background on, tiles at $8000
 	ldh [rLCDC], a
@@ -198,8 +206,24 @@ TilesLogoData:
 TilesLogoDataEnd:
 
 TitleData:
+IF __ENABLE_DOUBLE_SPEED__ == 1
+	db $00, $00, "P"-$20, "L"-$20, "A"-$20, "Y"-$20, $00, "I"-$20, "T"-$20, $00, "L"-$20, "O"-$20, "U"-$20, "D"-$20, "E"-$20, "R"-$20, $00, $00
+ELSE
 	db $00, $00, $00, "P"-$20, "L"-$20, "A"-$20, "Y"-$20, $00, "I"-$20, "T"-$20, $00, "L"-$20, "O"-$20, "U"-$20, "D"-$20, $00, $00, $00
+ENDC
 TitleDataEnd:
+
+IF __DEBUG__ == 1
+PlaybackRateData:
+IF __ENABLE_DOUBLE_SPEED__ == 1
+	db $00, $00, $00, $00, $00, "1"-$20, "6"-$20, "3"-$20, "8"-$20, "4"-$20, $00, "H"-$20, "Z"-$20, $00, $00, $00, $00, $00
+;	db $00, $00, $00, $00, $00, "1"-$20, "2"-$20, "4"-$20, "8"-$20, "3"-$20, $00, "H"-$20, "Z"-$20, $00, $00, $00, $00, $00
+ELSE
+	db $00, $00, $00, $00, $00, "8"-$20, "1"-$20, "9"-$20, "2"-$20, $00, $00, "H"-$20, "Z"-$20, $00, $00, $00, $00, $00
+;	db $00, $00, $00, $00, $00, "6"-$20, "2"-$20, "4"-$20, "1"-$20, $00, $00, "H"-$20, "Z"-$20, $00, $00, $00, $00, $00
+ENDC
+PlaybackRateDataEnd:
+ENDC
 
 CoverTilemapData:
 	db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
