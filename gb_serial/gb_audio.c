@@ -20,7 +20,8 @@
 #define RESET_TRIGGER_DELAY_MS 100
 #define METADATA_LENGTH 36
 
-#define BUFFER_SIZE 74
+// Each buffer holds 2 milliseconds worth of samples
+#define BUFFER_SIZE ((int)(1.0*OUTPUT_SAMPLE_RATE/1000*2))
 #define BUFFER_COUNT 3
 #define EXPECTED_SAMPLES ((int)((1.0*INPUT_SAMPLE_RATE/OUTPUT_SAMPLE_RATE)*BUFFER_SIZE))
 unsigned char samples_buffers[BUFFER_COUNT][BUFFER_SIZE];

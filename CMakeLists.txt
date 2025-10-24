@@ -25,6 +25,7 @@ add_subdirectory(gb_serial)
 add_subdirectory(jpegdec)
 add_subdirectory(player_sine)
 add_subdirectory(player_bt)
+add_subdirectory(player_usb)
 add_subdirectory(rom)
 
 unset(ENABLE_DOUBLE_SPEED CACHE)

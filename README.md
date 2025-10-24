@@ -19,3 +19,7 @@ make
 
 Default build playback rate is 8192Hz.
 Add `-DENABLE_DOUBLE_SPEED=1` to the cmake command to enable double-speed mode in the Game Boy Color rom and boost playback to 16384Hz.
+
+# Pico SDK requirement
+
+Firmware `player_usb` (audio interface) requires tinyusb >=0.19.0 --> checkout tag `0.19.0` in `${PICO_SDK_PATH}$/lib/tinyusb`.
