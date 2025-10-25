@@ -219,5 +219,10 @@ void usb_audio_tasks() {
 }
 
 void usb_audio_read_samples(int16_t* buffer, int length) {
-    tud_audio_read(buffer, length);
+  uint16_t available = tud_audio_available();
+  tud_audio_read(buffer, length);
+  // Empty rest of buffer
+  if (length > available) {
+    memset(buffer+(available/2), 0, length-available);
+  }
 }
