@@ -12,6 +12,7 @@ static uint16_t _cid = 0;
 static bool _playing = false;
 static uint8_t _volume = 0;
 
+#if ENABLE_COVER_ART == 1
 // Cover art
 bd_addr_t remote_address;
 
@@ -34,6 +35,7 @@ static l2cap_ertm_config_t a2dp_sink_demo_ertm_config = {
 static bool a2dp_sink_cover_art_download_active;
 static uint32_t a2dp_sink_cover_art_file_size;
 static uint8_t cover_art_jpeg[60000];
+#endif
 
 // Initilized with built-in tiles
 uint8_t cover_tiles[14*13*16] = {
@@ -288,6 +290,7 @@ void send_cover_and_metadata_if_ready() {
 }
 
 
+#if ENABLE_COVER_ART == 1
 static void a2dp_sink_demo_cover_art_packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size) {
     UNUSED(channel);
     UNUSED(size);
@@ -364,6 +367,7 @@ static uint8_t a2dp_sink_demo_cover_art_connect(void) {
                                           sizeof(a2dp_sink_demo_ertm_buffer), &a2dp_sink_demo_ertm_config,
                                           &a2dp_sink_demo_cover_art_cid);
 }
+#endif
 
 
 
@@ -396,9 +400,11 @@ static void connection_handler(uint8_t packet_type, uint16_t channel, uint8_t *p
 
             _cid = cid;
 
+#if ENABLE_COVER_ART == 1
             // Store remote device address
             avrcp_subevent_connection_established_get_bd_addr(packet, remote_address);
             printf("AVRCP: Connected to %s, cid 0x%02x\n", bd_addr_to_str(remote_address), _cid);
+#endif
 
             avrcp_target_support_event(cid, AVRCP_NOTIFICATION_EVENT_VOLUME_CHANGED);
             avrcp_target_support_event(cid, AVRCP_NOTIFICATION_EVENT_BATT_STATUS_CHANGED);
@@ -440,10 +446,13 @@ static void controller_handler(uint8_t packet_type, uint16_t channel, uint8_t *p
             avrcp_controller_enable_notification(_cid, AVRCP_NOTIFICATION_EVENT_PLAYBACK_STATUS_CHANGED);
             avrcp_controller_enable_notification(_cid, AVRCP_NOTIFICATION_EVENT_NOW_PLAYING_CONTENT_CHANGED);
             avrcp_controller_enable_notification(_cid, AVRCP_NOTIFICATION_EVENT_TRACK_CHANGED);
+
+#if ENABLE_COVER_ART == 1
             // image handles become invalid on player change, register for notifications
             avrcp_controller_enable_notification(_cid, AVRCP_NOTIFICATION_EVENT_UIDS_CHANGED);
             status = a2dp_sink_demo_cover_art_connect();
             printf("Cover Art: connect -> status %02x\n", status);
+#endif
             break;
 
         case AVRCP_SUBEVENT_NOTIFICATION_STATE:
@@ -487,7 +496,11 @@ static void controller_handler(uint8_t packet_type, uint16_t channel, uint8_t *p
         case AVRCP_SUBEVENT_NOTIFICATION_TRACK_CHANGED:
             printf("AVRCP Controller: Track changed\n");
 
+#if ENABLE_COVER_ART == 1
             cover_received = a2dp_sink_demo_cover_art_client_supported == 0;
+#else
+            cover_received = true;
+#endif
             artist_received = false;
             title_received = false;
 
@@ -556,6 +569,7 @@ static void controller_handler(uint8_t packet_type, uint16_t channel, uint8_t *p
             avrcp_play_status2str(avrcp_subevent_play_status_get_play_status(packet)));
             break;
         
+#if ENABLE_COVER_ART == 1
         case AVRCP_SUBEVENT_NOTIFICATION_EVENT_UIDS_CHANGED:
             if (a2dp_sink_demo_cover_art_client_connected){
                 printf("AVRCP Controller: UIDs changed -> disconnect cover art client\n");
@@ -578,6 +592,7 @@ static void controller_handler(uint8_t packet_type, uint16_t channel, uint8_t *p
                 }
             }
             break;
+#endif
 
         default:
             break;
@@ -606,7 +621,10 @@ static void target_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
 
 void avrcp_begin() {
     goep_client_init();
+
+#if ENABLE_COVER_ART == 1
     avrcp_cover_art_client_init();
+#endif
 
     avrcp_init();
     avrcp_controller_init();
