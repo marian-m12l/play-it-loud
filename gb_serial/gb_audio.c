@@ -82,6 +82,23 @@ bool gb_audio_new_track_step3_done() {
     return gb_serial_transfer_done();
 }
 
+void gb_audio_new_track_blocking(const uint8_t* cover_tiles, const char* artist, const char* title) {
+    do {
+        gb_audio_new_track_step1();
+        while (!gb_audio_new_track_step1_done()) {
+            tight_loop_contents();
+        }
+    } while (gb_serial_received() != 0xf2);
+    gb_audio_new_track_step2(cover_tiles);
+    while (!gb_audio_new_track_step2_done()) {
+        tight_loop_contents();
+    }
+    gb_audio_new_track_step3(artist, title);
+    while (!gb_audio_new_track_step3_done()) {
+        tight_loop_contents();
+    }
+}
+
 void gb_audio_streaming_start() {
     downsample_init(&downsampler_instance, INPUT_SAMPLE_RATE, OUTPUT_SAMPLE_RATE);
     encode_init(&encoder_instance);

@@ -114,6 +114,10 @@ ENDC
 
 	; Wait for "new track" signal on serial
 WaitForNewTrack:
+	; Set constant serial output
+	ld a, $f2
+	ldh [rSB], a
+
 	; Enable serial external clock / wait for incoming serial data
 	ld a, $80
 	ldh [rSC], a

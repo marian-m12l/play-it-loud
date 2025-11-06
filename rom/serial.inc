@@ -23,6 +23,15 @@ MACRO PlaybackSerialISR
 
 	; Copy to destination
 	ld [bc], a						;[2]
+
+	; Re-enable rSC ASAP to not miss a clock pulse
+	; Set constant serial output
+	ld a, $f2
+	ldh [rSB], a
+	; Wait for the next serial data (enable external clock)
+	ld a, $80				;[2]
+	ldh [rSC], a			;[3]
+
 	; Increment destination
 	inc bc							;[2]
 	; Handle end of buffer --> loop

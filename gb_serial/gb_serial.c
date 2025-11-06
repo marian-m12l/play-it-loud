@@ -74,7 +74,7 @@ void gb_serial_init() {
     dma_channel_configure(dma_channel_rx, &dma_config_rx,
         &input,                 // write address
         &pio->rxf[sm],          // read address
-        0xffffffff,             // element count (each element is of size transfer_data_size)
+        dma_encode_transfer_count(0x0fffffff),  // element count (each element is of size transfer_data_size)
         true                    // start immediately
     );
     // IRQ
@@ -109,4 +109,8 @@ void gb_serial_immediate_transfer(const uint8_t* data, uint16_t length) {
 
 bool gb_serial_transfer_done() {
     return !dma_channel_is_busy(dma_channel_tx);
+}
+
+uint8_t gb_serial_received() {
+    return input;
 }

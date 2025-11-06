@@ -21,3 +21,4 @@ bool gb_serial_streaming_is_busy();
 void gb_serial_immediate_transfer(const uint8_t* data, uint16_t length);
 
 bool gb_serial_transfer_done();
+uint8_t gb_serial_received();

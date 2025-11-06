@@ -9,6 +9,7 @@ void gb_audio_new_track_step2(const uint8_t* cover_tiles);
 bool gb_audio_new_track_step2_done();
 void gb_audio_new_track_step3(const char* artist, const char* title);
 bool gb_audio_new_track_step3_done();
+void gb_audio_new_track_blocking(const uint8_t* cover_tiles, const char* artist, const char* title);
 
 void gb_audio_streaming_start();
 void gb_audio_streaming_stop();
