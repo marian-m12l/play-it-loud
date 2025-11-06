@@ -51,7 +51,7 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
 }
 
 
-void bt_begin( const char *name, const char *pin, bt_on_up_cb_t cb, void *data ) {
+void bt_begin(const char *name, const char *pin, bt_on_up_cb_t cb, void *data, const uint8_t* cover_tiles) {
     _name = name ? name : "Pico 00:00:00:00:00:00";
     _pin = pin ? pin : "0000";
     _data = data;
@@ -61,7 +61,7 @@ void bt_begin( const char *name, const char *pin, bt_on_up_cb_t cb, void *data )
     sdp_begin();
 
     a2dp_sink_begin();
-    avrcp_begin();
+    avrcp_begin(cover_tiles);
 
     gap_set_local_name(_name);
     gap_discoverable_control(1); 

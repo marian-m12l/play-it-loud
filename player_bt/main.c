@@ -47,7 +47,7 @@ int main() {
     // LED ON during setup until bt is up
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, true);
 
-    bt_begin(BT_NAME, BT_PIN, on_bt_up, NULL);
+    bt_begin(BT_NAME, BT_PIN, on_bt_up, NULL, cover_tiles_bt);
 
     printf("Setup done\n");
 

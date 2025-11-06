@@ -98,6 +98,9 @@ static void timer_handler_cover(btstack_timer_source_t * ts) {
 void send_cover_and_metadata_if_ready() {
     if (cover_received && artist_received && title_received) {
         printf("Received all metadata: send to GB\n");
+
+        // Remove previously registered timer
+        btstack_run_loop_remove_timer(&track_timer_sink);
         
         // start timer to send cover and metadata to the GB
         btstack_run_loop_set_timer_handler(&track_timer_sink, &timer_handler_cover);
@@ -437,11 +440,13 @@ static void target_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
 }
 
 
-void avrcp_begin() {
+void avrcp_begin(const uint8_t* cover) {
     goep_client_init();
 
 #if ENABLE_COVER_ART == 1
     avrcp_cover_art_client_init();
+#else
+    memcpy(cover_tiles, cover, sizeof(cover_tiles));
 #endif
 
     avrcp_init();

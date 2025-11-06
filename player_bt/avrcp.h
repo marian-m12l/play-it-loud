@@ -3,7 +3,7 @@
 
 #include <btstack.h>
 
-void avrcp_begin();
+void avrcp_begin(const uint8_t* cover_tiles);
 
 uint8_t avrcp_get_volume();  // 0..127
 bool avrcp_is_connected();
