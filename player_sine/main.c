@@ -20,7 +20,7 @@ bi_decl(bi_3pins_with_names(
 
 #define SINE_WAVE_TABLE_LEN 2048
 static int16_t sine_wave_table[SINE_WAVE_TABLE_LEN];
-#define POLL_RATE_MS 5
+#define POLL_RATE_MS 3
 
 char artist[] = "Sine #0";
 char title[] = "Swiping frequency";
