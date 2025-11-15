@@ -20,7 +20,7 @@ bi_decl(bi_3pins_with_names(
 
 #define SINE_WAVE_TABLE_LEN 2048
 static int16_t sine_wave_table[SINE_WAVE_TABLE_LEN];
-#define POLL_RATE_MS 3
+#define POLL_RATE_MS 1
 
 char artist[] = "Sine #0";
 char title[] = "Swiping frequency";
@@ -39,12 +39,6 @@ int main() {
     sleep_ms(1000);
 
     printf("Sine Wave Player\n");
-
-#if ENABLE_DOUBLE_SPEED == 1
-    printf("Playback rate: 16384Hz\n");
-#else
-    printf("Playback rate: 8192Hz\n");
-#endif
 
     // Prepare sine samples
     for (int i = 0; i < SINE_WAVE_TABLE_LEN; i++) {
@@ -76,7 +70,7 @@ int main() {
                 if (pos >= pos_max) pos -= pos_max;
             }
             step = (step + 0x1000) % 0x1000000;
-            gb_audio_streaming_fill_buffer(samples);
+            gb_audio_streaming_fill_buffer(samples, expected);
             free(samples);
         }
         sleep_ms(POLL_RATE_MS);

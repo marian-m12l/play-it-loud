@@ -33,12 +33,6 @@ int main() {
 
     printf("Bluetooth A2DP Sink Player\n");
 
-#if ENABLE_DOUBLE_SPEED == 1
-    printf("Playback rate: 16384Hz\n");
-#else
-    printf("Playback rate: 8192Hz\n");
-#endif
-
     if (cyw43_arch_init()) {
         printf("Failed to init cyw43_arch\n");
         return -1;

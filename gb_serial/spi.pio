@@ -33,6 +33,11 @@ static inline void pio_spi_init(PIO pio, uint sm, uint prog_offs, uint n_bits,
     pio_gpio_init(pio, pin_mosi);
     pio_gpio_init(pio, pin_miso);
     pio_gpio_init(pio, pin_sck);
+    
+    // FIXME Débrancher le pico à chaud désynchronise le lien avec la game boy !!
+
+    // FIXME useful??
+    //gpio_set_pulls(pin_sck, true, false);
 
     // The pin muxes can be configured to invert the output (among other things
     // and this is a cheesy way to get CPOL=1

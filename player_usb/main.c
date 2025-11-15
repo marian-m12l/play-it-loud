@@ -29,13 +29,7 @@ int main(void) {
 
     sleep_ms(1000);
 
-    printf("USB Player NEW\n");
-
-#if ENABLE_DOUBLE_SPEED == 1
-    printf("Playback rate: 16384Hz\n");
-#else
-    printf("Playback rate: 8192Hz\n");
-#endif
+    printf("USB Player\n");
 
     // Init USB audio interface
     usb_audio_init();
@@ -56,19 +50,29 @@ int main(void) {
     while (true) {
         usb_audio_tasks();
         int expected;
+        int available;
         while (expected = gb_audio_streaming_needs_samples()) {
             // Expect stereo samples from source
             int expected_bytes = sizeof(int16_t) * 2 * expected;
             int16_t *samples = malloc(expected_bytes);
-            usb_audio_read_samples(samples, expected_bytes);
+            usb_audio_read_samples(samples, expected_bytes, &available);
+            int available_samples = available / 2 / sizeof(int16_t);
+            //printf("Asked for %d samples (%d bytes) from usb audio buffer. Got %d samples.\n", expected, expected_bytes, available_samples);
+
+            if (available_samples == 0) {
+                //printf("Got 0 samples, stop loop\n");
+                free(samples);
+                break;
+            }
 
             // Mix samples to mono
+            // FIXME Support stereo playback?
             int16_t i;
-            for (i=0; i<expected; i++) {
+            for (i=0; i<available_samples; i++) {
                 samples[i] = (samples[2*i] / 2.0f) + (samples[2*i+1] / 2.0f);
             }
             
-            gb_audio_streaming_fill_buffer(samples);
+            gb_audio_streaming_fill_buffer(samples, available_samples);
             free(samples);
         }
         sleep_ms(POLL_RATE_MS);

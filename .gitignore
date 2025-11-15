@@ -1,1 +1,6 @@
 build
+*.wav
+a.out
+.venv
+8khz
+16khz

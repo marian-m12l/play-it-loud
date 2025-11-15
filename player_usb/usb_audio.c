@@ -218,11 +218,13 @@ void usb_audio_tasks() {
   tud_task();   // TinyUSB device task
 }
 
-void usb_audio_read_samples(int16_t* buffer, int length) {
-  uint16_t available = tud_audio_available();
-  tud_audio_read(buffer, length);
+void usb_audio_read_samples(int16_t* buffer, int length, int* available) {
+  *available = tud_audio_available();
+  int len = *available > length ? length : *available;
+  tud_audio_read(buffer, len);
   // Empty rest of buffer
-  if (length > available) {
-    memset(buffer+(available/2), 0, length-available);
+  if (length > len) {
+    memset(buffer+(len/2), 0, length-len);
   }
+  *available = len;
 }

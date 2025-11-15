@@ -11,6 +11,6 @@ typedef struct {
 } encoder_t;
 
 void encode_init(encoder_t* instance);
-void encode(encoder_t* instance, const unsigned char input[], unsigned char * output, int length);
+void encode(encoder_t* instance, const unsigned char * input, unsigned char * output, int length);
 
 #endif

@@ -7,6 +7,8 @@ else()
   set(ROM_TITLE "PLAY IT LOUD!")
 endif()
 
+set(ROM_TITLE "PLAY IT DEBUG")
+
 add_custom_target(generate_gfx DEPENDS logo.2bpp)
 add_custom_command(
   OUTPUT logo.2bpp

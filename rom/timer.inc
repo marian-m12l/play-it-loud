@@ -1,5 +1,6 @@
 ; Original work by jbshelton: https://github.com/jbshelton/GBAudioPlayer
 
+;DEF workVar2 EQU $FFFA
 DEF workVar1 EQU $FFF8
 DEF workVar0 EQU $FFF7
 
@@ -16,6 +17,8 @@ MACRO PlaybackTimerInit
 	ldh [rIE], a
 ENDM
 
+; TODO Just read rSB on every timer ISR ? no need to buffer, play what's streamed. no need for serial ISR.
+
 MACRO ReadyTimer
 	; Init hl register with read position
 	ld hl, wBuffer0
@@ -23,6 +26,21 @@ ENDM
 
 MACRO PlaybackTimerISR
 	; hl contains read position / source data address
+	
+	; TODO make sure we received a new sample ?
+	; TODO Use sp register to communicate between serial and timer ISR ??
+	; FIXME simpler/faster to store counter in ram ? [samples_recvd]
+	;ld [workVar2], sp
+	;ldh a, [workVar2+1]
+	;cp $00
+	;jr z, .sampleEnd	; skip playback
+	;dec sp
+
+	;jr nc, .sampleEnd	; skip playback if carry flag is not set (no sample available)
+	; TODO unset carry flag
+
+	; FIXME Serial ISR sets 'de' register to invalid value --> playback should abort if the value is valid
+
 	ld a, [hl]  ;[2]
 	ld e, a     ;[1]
 	and $F0     ;[2]
@@ -75,11 +93,18 @@ MACRO PlaybackTimerISR
 	inc hl	    ;[2]
 	; Handle end of buffer --> loop
 	ld a, h							;[1]	; Load high byte of HL register to compare with end of buffer
+	; FIXME this set the carry flag if nz --> reset carry flag ??
 	cp HIGH(wBuffersEnd)			;[2]
 	jr nz, .sampleEnd				;[2]	; 4 cycles if path taken, 3 cycles otherwise
 	ld a, HIGH(wBuffer0)			;[2]	; back to buffer 0
 	ld h, a							;[1]	; Reset high byte of HL register to loop back
 .sampleEnd:
+	;xor a	; Reset carry flag (FIXME only when coming from jr nz, .sampleEnd ??)
 	reti    ;[4]
 ENDM
 
+; MAX 68 cycles ? --> 65 us @ single speed --> 33 us @ double speed
+; TODO Add ISR call (5 cycles)
+; TODO Add ISR jump (4 cycles)
+; TODO Add worst-case end-of-instruction (halt is 4 cycles -> remaining 3 cycles at max)
+; TOTAL 80 cycles !! --> 76 us / 38 us

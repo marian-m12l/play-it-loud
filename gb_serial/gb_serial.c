@@ -24,7 +24,10 @@ void __isr __time_critical_func(dma_handler)() {
             // Swap buffers
             _source->swap();
             // Give the channel a new buffer to read from, and re-trigger it
-            dma_channel_transfer_from_buffer_now(dma_channel_tx, _source->playback_buffer(), _source->buffer_size);
+            // FIXME Do NOT transfer immediately, re-enable DMA and WAIT FOR TIMER DREQ !!!
+            // TODO Clear DREQ counter ??
+            //dma_debug_hw->ch[dma_channel_tx].dbg_ctdreq = 0;
+            dma_channel_transfer_from_buffer_now(dma_channel_tx, _source->playback_buffer(), dma_encode_transfer_count(_source->buffer_size));
         }
     } else if (dma_channel_get_irq0_status(dma_channel_rx)) {
         // Clear the interrupt request.
@@ -35,6 +38,13 @@ void __isr __time_critical_func(dma_handler)() {
 }
 
 void gb_serial_init() {
+
+#if ENABLE_DOUBLE_SPEED == 1
+    printf("Playback rate: 16384Hz\n");
+#else
+    printf("Playback rate: 8192Hz\n");
+#endif
+
     // Run GB Link at 524288Hz (2 097 152 PIO cycles per second --> clkdiv=59.6046447754 @125MHz)
     // Sending 8 bits takes around 15us, leaving ~145us for the GB to read and process the data
     uint cpha1_prog_offs = pio_add_program(pio, &spi_cpha1_program);
@@ -85,13 +95,20 @@ void gb_serial_streaming_start(gb_serial_source_t* source) {
     _source = source;
 
     // Start first transfer
-    dma_channel_transfer_from_buffer_now(dma_channel_tx, _source->playback_buffer(), _source->buffer_size);
+    // FIXME Do NOT transfer immediately, re-enable DMA and WAIT FOR TIMER DREQ !!!
+    // TODO Clear DREQ counter ??
+    //dma_debug_hw->ch[dma_channel_tx].dbg_ctdreq = 0;
+    dma_channel_transfer_from_buffer_now(dma_channel_tx, _source->playback_buffer(), dma_encode_transfer_count(_source->buffer_size));
 }
 
 void gb_serial_streaming_stop() {
     _source = NULL;
 
     // Abort
+    // FIXME Due to RP2040-E13, aborting a DMA channel that is making progress (i.e. not stalled on an inactive DREQ) may
+    // cause a completion IRQ to assert. The channel interrupt enable should be cleared before performing the abort, and
+    // the interrupt should be checked and cleared after the abort.
+    // TODO Disable interrupt, abort, wait for completion, re-enable interrupt
     dma_channel_abort(dma_channel_tx);
 
     // Clear PIO FIFOs
@@ -104,7 +121,10 @@ bool gb_serial_streaming_is_busy() {
 
 void gb_serial_immediate_transfer(const uint8_t* data, uint16_t length) {
     // Start transfer
-    dma_channel_transfer_from_buffer_now(dma_channel_tx, data, length);
+    // FIXME Do NOT transfer immediately, re-enable DMA and WAIT FOR TIMER DREQ !!!
+    // TODO Clear DREQ counter ??
+    //dma_debug_hw->ch[dma_channel_tx].dbg_ctdreq = 0;
+    dma_channel_transfer_from_buffer_now(dma_channel_tx, data, dma_encode_transfer_count(length));
 }
 
 bool gb_serial_transfer_done() {

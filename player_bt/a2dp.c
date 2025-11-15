@@ -109,15 +109,16 @@ static void handle_pcm_data(int16_t * data, int num_audio_frames, int num_channe
     int frames_to_store = resampled_frames - frames_to_copy;
     if (frames_to_store) {
         int status = btstack_ring_buffer_write(&_decoded_audio_ring_buffer, (uint8_t *)&output_buffer[frames_to_copy * NUM_CHANNELS], frames_to_store * BYTES_PER_FRAME);
-        /*if (status){
-            printf("Error storing samples in PCM ring buffer!!!\n");
-        }*/
+        if (status){
+            //printf("Error storing samples in PCM ring buffer!!!\n");
+        }
     }
 }
 
 
 /// provide pcm frames to i2s sink
-static void playback_handler(int16_t * buffer, uint16_t num_audio_frames) {
+static void playback_handler(int16_t * buffer, uint16_t num_audio_frames, int* available) {
+    uint16_t asking = num_audio_frames;
 
     // called from lower-layer but guaranteed to be on main thread
     if (_sbc_frame_size == 0){
@@ -128,7 +129,7 @@ static void playback_handler(int16_t * buffer, uint16_t num_audio_frames) {
     // first fill from resampled audio
     uint32_t bytes_read;
     btstack_ring_buffer_read(&_decoded_audio_ring_buffer, (uint8_t *) buffer, num_audio_frames * BYTES_PER_FRAME, &bytes_read);
-    buffer += bytes_read / NUM_CHANNELS;
+    buffer += bytes_read / 2;    // FIXME divide by SAMPLE DEPTH (2 bytes) ??
     num_audio_frames -= bytes_read / BYTES_PER_FRAME;
 
     // then start decoding sbc frames using request_* globals
@@ -138,8 +139,17 @@ static void playback_handler(int16_t * buffer, uint16_t num_audio_frames) {
         // decode frame
         uint8_t sbc_frame[MAX_SBC_FRAME_SIZE];
         btstack_ring_buffer_read(&_sbc_frame_ring_buffer, sbc_frame, _sbc_frame_size, &bytes_read);
+        // FIXME This calls handle_pcm_data, which write into _request_buffer
         btstack_sbc_decoder_process_data(&_state, 0, sbc_frame, _sbc_frame_size);
     }
+
+    // FIXME What if there are not enough samples available ?? --> buffer was memset to 0 !
+    if (_request_frames) {
+        // TODO missing samples
+        //printf("A2DP NOT ENOUGH SAMPLES: num_audio_frames=%d _request_frames=%d\n", num_audio_frames, _request_frames);
+    }
+
+    *available = (asking - _request_frames);
 }
 
 
@@ -371,9 +381,9 @@ static void media_handler(uint8_t seid, uint8_t *packet, uint16_t size) {
     _sbc_frame_size = packet_length / sbc_header.num_frames;
 
     int status = btstack_ring_buffer_write(&_sbc_frame_ring_buffer, packet_begin, packet_length);
-    /*if (status != ERROR_CODE_SUCCESS){
-        printf("Error storing samples in SBC ring buffer!!!\n");
-    }*/
+    if (status != ERROR_CODE_SUCCESS){
+        //printf("Error storing samples in SBC ring buffer!!!\n");
+    }
 
     // decide on audio sync drift based on number of sbc frames in queue
     int sbc_frames_in_buffer = btstack_ring_buffer_bytes_available(&_sbc_frame_ring_buffer) / _sbc_frame_size;

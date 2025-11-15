@@ -136,7 +136,7 @@ void encode_init(encoder_t* instance) {
     instance->curr_sample = 0;
 }
 
-void encode(encoder_t* instance, const unsigned char input[], unsigned char * output, int length) {
+void encode(encoder_t* instance, const unsigned char * input, unsigned char * output, int length) {
     int i = 0;
     
     // First sample

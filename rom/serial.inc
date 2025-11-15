@@ -18,16 +18,18 @@ MACRO PlaybackSerialISR
 	ldh a, [rSB]					;[3]
 
 	; Trigger reset
-	cp $f1
-	jp z, NewTrack
+	cp $f1							;[2]
+	; FIXME should still return from interrupt ??? remove return address from stack ? 
+	jp z, NewTrack					;[2]
 
 	; Copy to destination
 	ld [bc], a						;[2]
 
 	; Re-enable rSC ASAP to not miss a clock pulse
+	; FIXME worst-case delay between byte being send over serial and rSC being armed again ? (e.g. is just started playback audio ISR ??)
 	; Set constant serial output
-	ld a, $f2
-	ldh [rSB], a
+	ld a, $f2						;[2]
+	ldh [rSB], a					;[3]
 	; Wait for the next serial data (enable external clock)
 	ld a, $80				;[2]
 	ldh [rSC], a			;[3]
@@ -42,11 +44,28 @@ MACRO PlaybackSerialISR
 	ld b, a							;[1]	; Reset high byte of BC register to loop back
 
 .noLoopback:
+	; FIXME Re-enable rSC ASAP to not miss a clock pulse !!!
+	; FIXME worst-case delay between byte being send over serial and rSC being armed again ? (e.g. is just started playback audio ISR ??)
 	; Wait for the next serial data (enable external clock)
-	ld a, $80				;[2]
-	ldh [rSC], a			;[3]
+	;ld a, $80				;[2]
+	;ldh [rSC], a			;[3]
+	; increment received samples count (used by playback)
+	;inc sp					;[2]
+
+	; FIXME set a flag to signal timer ISR that there is a sample to play
+	; Set carry flag
+	;scf
+
+	; FIXME Set 'de' register to invalid value ? --> playback should abort if the value is valid
+
 	reti					;[4]
 ENDM
+
+; MAX 33 cycles ? --> 31 us @ single speed --> 16 us @ double speed
+; TODO Add ISR call (5 cycles)
+; TODO Add ISR jump (4 cycles)
+; TODO Add worst-case end-of-instruction (halt is 4 cycles -> remaining 3 cycles at max)
+; TOTAL 45 cycles !! --> 43 us / 22 us
 
 
 ;***************************************************************************

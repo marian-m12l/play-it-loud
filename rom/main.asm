@@ -4,6 +4,7 @@ INCLUDE "macros.inc"
 INCLUDE "audio.inc"
 INCLUDE "timer.inc"
 INCLUDE "serial.inc"
+INCLUDE "joypad.inc"
 
 
 SECTION "VBlank", ROM0 [$40]
@@ -15,6 +16,9 @@ SECTION "Timer", ROM0[$50]
 SECTION "Serial", ROM0 [$58]
 	jp SerialISR
 
+; TODO Joypad ISR ?? mute, commands, debug...
+SECTION "Joypad", ROM0 [$60]
+	jp JoypadISR
 
 SECTION "Header", ROM0[$100]
 
@@ -112,6 +116,17 @@ ENDC
 	ld a, %10010011		; Screen on, Background on, tiles at $8000
 	ldh [rLCDC], a
 
+
+	xor a
+	ldh [rIF], a	; Clear requested/unserviced interrupts
+	ldh [rIE], a	; All interrupts OFF
+	ld sp, $FFFF	; Set stack pointer
+	
+	; FIXME Enable joypad interrupt to trigger newtrack ?
+	JoypadInit
+	ReadyJoypad
+	ei
+
 	; Wait for "new track" signal on serial
 WaitForNewTrack:
 	; Set constant serial output
@@ -133,9 +148,7 @@ WaitForNewTrack:
 	
 	; Trigger reset
 	cp $f1
-	jp z, NewTrack
-	
-	; Loop
+	; Or loop
 	jr nz, WaitForNewTrack
 
 
@@ -148,7 +161,9 @@ NewTrack:
 	ldh [rIF], a	; Clear requested/unserviced interrupts
 
 	ldh [rIE], a	; All interrupts OFF
+	; FIXME we use stack pointer as a communication register between playback and serial ISR!!
 	ld sp, $FFFF	; Set stack pointer
+	;ld sp, $0000	; Set stack pointer
 
 .waitvbl:
 	ldh a, [rLY]	; Read current line
@@ -178,17 +193,23 @@ UpdateMetadata:
 	ld a, %10010011		; Screen on, Background on, tiles at $8000
 	ldh [rLCDC], a
 
+	; FIXME Enable joypad interrupt to trigger newtrack ?
+
 	PlaybackAudioInit
 	PlaybackTimerInit
 	PlaybackSerialInit
+	JoypadInit
 	ClearAudioBuffers
 
 	ReadySerial
 	ReadyTimer
+	ReadyJoypad
 
 	ei
 
+	; fixme just HALT ??
 .waitforInt:
+	halt
 	jr .waitforInt
 
 
@@ -197,6 +218,9 @@ TimerISR:
 
 SerialISR:
 	PlaybackSerialISR
+
+JoypadISR:
+	DoJoypadISR
 
 
 SECTION "Tiles", ROM0[$1000]

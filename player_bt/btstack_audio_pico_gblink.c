@@ -15,10 +15,10 @@
 #include "avrcp.h"
 
 
-#define DRIVER_POLL_INTERVAL_MS   5
+#define DRIVER_POLL_INTERVAL_MS   1
 
 // client
-static void (*playback_callback)(int16_t * buffer, uint16_t num_samples);
+static void (*playback_callback)(int16_t * buffer, uint16_t num_samples, int* available);
 
 // timer to fill output ring buffer
 static btstack_timer_source_t  driver_timer_sink;
@@ -27,7 +27,7 @@ static bool btstack_audio_pico_sink_active;
 static uint8_t btstack_audio_pico_channel_count;
 
 
-static int btstack_audio_pico_sink_init(uint8_t channels, uint32_t samplerate, void (*playback)(int16_t * buffer, uint16_t num_samples)) {
+static int btstack_audio_pico_sink_init(uint8_t channels, uint32_t samplerate, void (*playback)(int16_t * buffer, uint16_t num_samples, int* available)) {
     btstack_assert(playback != NULL);
     btstack_assert(channels != 0);
 
@@ -41,19 +41,29 @@ static int btstack_audio_pico_sink_init(uint8_t channels, uint32_t samplerate, v
 
 static void btstack_audio_pico_sink_fill_buffers(void) {
     int expected;
+    int available;
     while (expected = gb_audio_streaming_needs_samples()) {
+        // TODO Support partially filling playback buffers ? or wait to have enough samples available ?
         int16_t *samples = malloc(sizeof(int16_t) * btstack_audio_pico_channel_count * expected);
-        (*playback_callback)(samples, expected);
+        (*playback_callback)(samples, expected, &available);
+        //printf("Asked for %d samples (%d bytes) from pcm ring buffer. Got %d samples.\n", expected, sizeof(int16_t) * btstack_audio_pico_channel_count * expected, available);
+
+        if (available == 0) {
+            //printf("Got 0 samples, stop loop\n");
+            free(samples);
+            break;
+        }
 
         // Mix samples to mono
+        // FIXME Support stereo playback?
         if (btstack_audio_pico_channel_count == 2) {
             int16_t i;
-            for (i=0; i<expected; i++) {
+            for (i=0; i<available; i++) {
                 samples[i] = (samples[2*i] / 2.0f) + (samples[2*i+1] / 2.0f);
             }
         }
 
-        gb_audio_streaming_fill_buffer(samples);
+        gb_audio_streaming_fill_buffer(samples, available);
         free(samples);
     }
 }
