@@ -37,8 +37,8 @@ void __isr __time_critical_func(dma_handler)() {
 void gb_serial_init() {
     // Run GB Link at 524288Hz (2 097 152 PIO cycles per second --> clkdiv=59.6046447754 @125MHz)
     // Sending 8 bits takes around 15us, leaving ~145us for the GB to read and process the data
-    uint cpha1_prog_offs = pio_add_program(pio, &spi_cpha1_program);
-    pio_spi_init(pio, sm, cpha1_prog_offs, 8, 59.6046447754, 1, PIN_SERIAL_CLOCK, PIN_SERIAL_MOSI, PIN_SERIAL_MISO);
+    uint cpha1_cpol1_prog_offs = pio_add_program(pio, &spi_cpha1_cpol1_program);
+    pio_spi_init(pio, sm, cpha1_cpol1_prog_offs, 8, 59.6046447754, PIN_SERIAL_CLOCK, PIN_SERIAL_MOSI, PIN_SERIAL_MISO);
 
     // TX DMA
     dma_channel_tx = dma_claim_unused_channel(true);

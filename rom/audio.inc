@@ -31,16 +31,3 @@ MACRO PlaybackAudioInit
 	ld a, $44
 	ldh [rNR50], a	; L/R medium volume (4/7)
 ENDM
-
-MACRO ClearAudioBuffers
-	ld bc, wBuffersEnd-wBuffer0
-	ld hl, wBuffer0
-:
-	xor a
-	ldi [hl], a
-	dec bc
-	; Check if bc is 0
-	ld a, c
-	or b 							; A=(C OR B)
-	jr nz, :-
-ENDM

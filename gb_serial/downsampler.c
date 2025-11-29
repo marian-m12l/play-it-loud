@@ -43,3 +43,9 @@ void downsample(downsampler_t* instance, const int16_t input[], int16_t * output
     }
     instance->samples += j;
 }
+
+// Calculates how many input samples are needed to produce the required number of output samples
+// (depending on the internal state of the downsampler)
+int downsample_expected_samples(downsampler_t* instance, int output_samples) {
+    return (int) ceil(1.0 * output_samples * instance->decimate_factor - instance->phase);
+}

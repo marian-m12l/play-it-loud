@@ -11,7 +11,7 @@ void gb_audio_new_track_step3(const char* artist, const char* title);
 bool gb_audio_new_track_step3_done();
 void gb_audio_new_track_blocking(const uint8_t* cover_tiles, const char* artist, const char* title);
 
-void gb_audio_streaming_start();
+void gb_audio_streaming_start(int output_buffers_size);
 void gb_audio_streaming_stop();
 bool gb_audio_streaming_is_busy();
 int gb_audio_streaming_needs_samples();

@@ -51,7 +51,7 @@ int main(void) {
 
     // Start streaming
     printf("Start streaming audio samples\n");
-    gb_audio_streaming_start();
+    gb_audio_streaming_start(32);
 
     while (true) {
         usb_audio_tasks();

@@ -61,7 +61,44 @@ unsigned char decode(unsigned char encoded) {
     return label == 60 ? 0xff : (LUT[label].min + LUT[label].max) / 2;
 }
 
+int s_gets(char* str, int n)
+{
+    char* str_read = fgets(str, n, stdin);
+    if (!str_read)
+        return -1;
+
+    int i = 0;
+    while (str[i] != '\n' && str[i] != '\0')
+        i++;
+
+    if (str[i] == '\n')
+        str[i] = '\0';
+
+    return 0;
+}
+
 int main() {
+    for (int sample=0x00; sample <= 0xff; sample++) {
+        printf("quantize(0x%02x) = 0x%02x\n", sample, quantize(sample));
+    }
+    
+    for (int encoded=0x00; encoded <= 0xff; encoded++) {
+        printf("decoded(0x%02x) = 0x%02x\n", encoded, decode(encoded));
+    }
+
+    /*int samples = 0;
+    char cell[6];
+    unsigned int encoded;
+    while (s_gets(cell, 6) == 0) {
+        //printf("cell = %s\n", cell);
+        sscanf(cell, "%x", &encoded);
+        //printf("encoded = 0x%02X\n", encoded);
+        printf("#%06d: 0x%02x -> 0x%02x\n", samples, encoded, decode(encoded));
+        samples++;
+    }
+    printf("Encoded samples: %d\n", samples);
+    */
+
     uint32_t duration = 10;
     uint32_t rate = 16384;  // Sample rate
     uint32_t frame_count = duration * rate;
@@ -73,8 +110,13 @@ int main() {
     // scales signal to use full 16bit resolution
     float multiplier = 32767 / sync_level;
 
+    float *channel1 = (float *) malloc(frame_count * sizeof(float));
+    for (uint32_t i=0; i < frame_count; i++) {
+        channel1[i] = (float) (rand() - RAND_MAX / 2) / RAND_MAX;
+    }
+
     // Writes data to wav file
-    FILE *fp = fopen("decoded.wav", "w");
+    FILE *fp = fopen("decoded_from_csv.wav", "w");
     if (fp == NULL) {
         printf("Output file couldn't be opened!\n");
         return 4;
@@ -103,13 +145,18 @@ int main() {
     fwrite("data", 1, 4, fp);
     fwrite(&length, 4, 1, fp);  // Data size
     for (uint32_t i = 0; i < frame_count; i++) {
-        unsigned char encoded;
-        fread(&encoded, 1, 1, stdin);
-        byte = (decode(encoded) << 8) - 32768;
+        byte = (channel1[i] * multiplier);
+        char cell[6];
+        if ((s_gets(cell, 6) == 0)) {
+            unsigned int encoded;
+            sscanf(cell, "%x", &encoded);
+            byte = (decode(encoded) << 8) - 32768;
+        }
         fwrite(&byte, 2, 1, fp);
     }
 
     fclose(fp);
+    free(channel1);
 
     return 0;
 }

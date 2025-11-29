@@ -1,5 +1,6 @@
 #include <string.h>
 #include <ctype.h>
+#include <stdlib.h>
 #include "pico/stdlib.h"
 
 #include "gb_serial.h"
@@ -18,13 +19,11 @@
 
 #define COVER_TILES_BYTES (14*13*16)
 #define RESET_TRIGGER_DELAY_MS 100
+#define PRE_STREAM_DELAY_MS 1000
 #define METADATA_LENGTH 36
 
-// Each buffer holds 2 milliseconds worth of samples
-#define BUFFER_SIZE ((int)(1.0*OUTPUT_SAMPLE_RATE/1000*2))
 #define BUFFER_COUNT 3
-#define EXPECTED_SAMPLES ((int)((1.0*INPUT_SAMPLE_RATE/OUTPUT_SAMPLE_RATE)*BUFFER_SIZE))
-unsigned char samples_buffers[BUFFER_COUNT][BUFFER_SIZE];
+unsigned char* samples_buffers[BUFFER_COUNT];
 
 int filling_buffer = 0;
 int playback_buffer = BUFFER_COUNT-1;
@@ -46,7 +45,7 @@ uint8_t* get_playback_buffer() {
 }
 
 gb_serial_source_t source = {
-    .buffer_size = BUFFER_SIZE,
+    .buffer_size = 0,   // Set when starting to stream
     .swap = &swap,
     .playback_buffer = &get_playback_buffer
 };
@@ -76,19 +75,18 @@ void gb_audio_new_track_step3(const char* artist, const char* title) {
     for (int i=0; i<METADATA_LENGTH; i++) {
         metadata[i] = toupper(metadata[i]) - 0x20;
     }
+    timestamp = time_us_64();
     gb_serial_immediate_transfer(metadata, METADATA_LENGTH);
 }
 bool gb_audio_new_track_step3_done() {
-    return gb_serial_transfer_done();
+    return gb_serial_transfer_done() && (time_us_64() - timestamp) > PRE_STREAM_DELAY_MS*1000;
 }
 
 void gb_audio_new_track_blocking(const uint8_t* cover_tiles, const char* artist, const char* title) {
-    do {
-        gb_audio_new_track_step1();
-        while (!gb_audio_new_track_step1_done()) {
-            tight_loop_contents();
-        }
-    } while (gb_serial_received() != 0xf2);
+    gb_audio_new_track_step1();
+    while (!gb_audio_new_track_step1_done()) {
+        tight_loop_contents();
+    }
     gb_audio_new_track_step2(cover_tiles);
     while (!gb_audio_new_track_step2_done()) {
         tight_loop_contents();
@@ -99,14 +97,21 @@ void gb_audio_new_track_blocking(const uint8_t* cover_tiles, const char* artist,
     }
 }
 
-void gb_audio_streaming_start() {
+void gb_audio_streaming_start(int output_buffers_size) {
     downsample_init(&downsampler_instance, INPUT_SAMPLE_RATE, OUTPUT_SAMPLE_RATE);
     encode_init(&encoder_instance);
+    for (int i=0; i<BUFFER_COUNT; i++) {
+        samples_buffers[i] = malloc(output_buffers_size);
+    }
+    source.buffer_size = output_buffers_size;
     gb_serial_streaming_start(&source);
 }
 
 void gb_audio_streaming_stop() {
     gb_serial_streaming_stop();
+    for (int i=0; i<BUFFER_COUNT; i++) {
+        free(samples_buffers[i]);
+    }
 }
 
 bool gb_audio_streaming_is_busy() {
@@ -114,17 +119,17 @@ bool gb_audio_streaming_is_busy() {
 }
 
 int gb_audio_streaming_needs_samples() {
-    return (filling_buffer != playback_buffer) ? EXPECTED_SAMPLES : 0;
+    return (filling_buffer != playback_buffer) ? downsample_expected_samples(&downsampler_instance, source.buffer_size) : 0;
 }
 
 void gb_audio_streaming_fill_buffer(int16_t* samples) {
     // Downsample and encode the next samples
-    int16_t downsampledAudioData[BUFFER_SIZE];
-    unsigned char convertedAudioData[BUFFER_SIZE];
+    int16_t* downsampledAudioData = malloc(source.buffer_size * sizeof(int16_t));
+    unsigned char* convertedAudioData = malloc(source.buffer_size);
     uint32_t samples_before = downsampler_instance.samples;
     
     // Downsample
-    downsample(&downsampler_instance, samples, downsampledAudioData, EXPECTED_SAMPLES);
+    downsample(&downsampler_instance, samples, downsampledAudioData, downsample_expected_samples(&downsampler_instance, source.buffer_size));
     // Convert int16_t to unsigned char
     for(int i = 0; i < downsampler_instance.samples-samples_before; i++) {
         convertedAudioData[i] = (downsampledAudioData[i] + 32768) >> 8;
@@ -132,12 +137,15 @@ void gb_audio_streaming_fill_buffer(int16_t* samples) {
     // Encode
     encode(&encoder_instance, convertedAudioData, samples_buffers[filling_buffer], downsampler_instance.samples-samples_before);
 
+    free(downsampledAudioData);
+    free(convertedAudioData);
+
     // Swap buffers
     filling_buffer = (filling_buffer + 1) % BUFFER_COUNT;
 }
 
 void gb_audio_streaming_clear_buffers() {
     for (int i=0; i<BUFFER_COUNT; i++) {
-        memset(samples_buffers[i], 0, BUFFER_SIZE);
+        memset(samples_buffers[i], 0x80, source.buffer_size);
     }
 }

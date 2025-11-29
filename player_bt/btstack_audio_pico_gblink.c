@@ -92,7 +92,7 @@ static void btstack_audio_pico_sink_start_stream(void) {
         btstack_audio_pico_sink_active = true;
 
         // Start streaming
-        gb_audio_streaming_start();
+        gb_audio_streaming_start(164);
 
         // FIXME Need to pre-fill _after_ audio stream started, otherwise downsampler and encoder are not initialized
         // pre-fill HAL buffers

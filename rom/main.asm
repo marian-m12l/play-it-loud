@@ -2,19 +2,14 @@ INCLUDE "hardware.inc"
 INCLUDE "ibmpc1.inc"
 INCLUDE "macros.inc"
 INCLUDE "audio.inc"
-INCLUDE "timer.inc"
 INCLUDE "serial.inc"
 
 
 SECTION "VBlank", ROM0 [$40]
 	reti
 
-SECTION "Timer", ROM0[$50]
-	jp TimerISR
-
 SECTION "Serial", ROM0 [$58]
 	jp SerialISR
-
 
 SECTION "Header", ROM0[$100]
 
@@ -133,9 +128,7 @@ WaitForNewTrack:
 	
 	; Trigger reset
 	cp $f1
-	jp z, NewTrack
-	
-	; Loop
+	; Or loop
 	jr nz, WaitForNewTrack
 
 
@@ -175,25 +168,20 @@ UpdateMetadata:
 	ld hl, _SCRN0+1+(SCRN_VX_B*16)
 	CopyDataFromSerial
 
+StartPlayback:
 	ld a, %10010011		; Screen on, Background on, tiles at $8000
 	ldh [rLCDC], a
 
 	PlaybackAudioInit
 	PlaybackTimerInit
 	PlaybackSerialInit
-	ClearAudioBuffers
-
-	ReadySerial
-	ReadyTimer
 
 	ei
 
 .waitforInt:
+	halt
 	jr .waitforInt
 
-
-TimerISR:
-	PlaybackTimerISR
 
 SerialISR:
 	PlaybackSerialISR
@@ -220,10 +208,12 @@ TitleDataEnd:
 IF __DEBUG__ == 1
 PlaybackRateData:
 IF __ENABLE_DOUBLE_SPEED__ == 1
-	db $00, $00, $00, $00, $00, "1"-$20, "6"-$20, "3"-$20, "8"-$20, "4"-$20, $00, "H"-$20, "Z"-$20, $00, $00, $00, $00, $00
+	db $00, $00, $00, "D"-$20, "O"-$20, "U"-$20, "B"-$20, "L"-$20, "E"-$20, $00, "S"-$20, "P"-$20, "E"-$20, "E"-$20, "D"-$20, $00, $00, $00
+;	db $00, $00, $00, $00, $00, "1"-$20, "6"-$20, "3"-$20, "8"-$20, "4"-$20, $00, "H"-$20, "Z"-$20, $00, $00, $00, $00, $00
 ;	db $00, $00, $00, $00, $00, "1"-$20, "2"-$20, "4"-$20, "8"-$20, "3"-$20, $00, "H"-$20, "Z"-$20, $00, $00, $00, $00, $00
 ELSE
-	db $00, $00, $00, $00, $00, "8"-$20, "1"-$20, "9"-$20, "2"-$20, $00, $00, "H"-$20, "Z"-$20, $00, $00, $00, $00, $00
+	db $00, $00, $00, "S"-$20, "I"-$20, "N"-$20, "P"-$20, "L"-$20, "E"-$20, $00, "S"-$20, "P"-$20, "E"-$20, "E"-$20, "D"-$20, $00, $00, $00
+;	db $00, $00, $00, $00, $00, "8"-$20, "1"-$20, "9"-$20, "2"-$20, $00, $00, "H"-$20, "Z"-$20, $00, $00, $00, $00, $00
 ;	db $00, $00, $00, $00, $00, "6"-$20, "2"-$20, "4"-$20, "1"-$20, $00, $00, "H"-$20, "Z"-$20, $00, $00, $00, $00, $00
 ENDC
 PlaybackRateDataEnd:
@@ -259,11 +249,3 @@ vFontTiles:
 vCoverTiles:
 	ds 14 * 13 * 16
 vCoverTilesEnd:
-
-
-SECTION	"Variables", WRAMX
-
-ALIGN 8
-wBuffer0:		DS	$400
-wBuffer1:		DS	$400
-wBuffersEnd:
