@@ -1,5 +1,8 @@
 # Play it loud!
 
+<img width="442" height="447" alt="Screenshot From 2025-12-01 21-22-46" src="https://github.com/user-attachments/assets/f73a2fc3-d7d5-4e93-8131-a3ed6e347e51" />
+
+
 A GB rom and a set of firmwares for Raspberry Pi Pico W to stream and play audio on Game Boy Color (CGB).
 
 The audio playback is largely based on jbshelton's [GBAudioPlayer](https://github.com/jbshelton/GBAudioPlayer).
