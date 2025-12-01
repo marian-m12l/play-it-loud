@@ -31,12 +31,6 @@ int main(void) {
 
     printf("USB Player NEW\n");
 
-#if ENABLE_DOUBLE_SPEED == 1
-    printf("Playback rate: 16384Hz\n");
-#else
-    printf("Playback rate: 8192Hz\n");
-#endif
-
     // Init USB audio interface
     usb_audio_init();
 
@@ -45,13 +39,13 @@ int main(void) {
     }
 
     // Configure audio playback
-    gb_serial_init();
+    gb_audio_init();
 
-    gb_audio_new_track_blocking(cover_tiles_usb, artist, title);
+    gb_audio_new_track_blocking(false, cover_tiles_usb, artist, title);
 
     // Start streaming
     printf("Start streaming audio samples\n");
-    gb_audio_streaming_start(32);
+    gb_audio_streaming_start(44100, 44);
 
     while (true) {
         usb_audio_tasks();

@@ -17,8 +17,8 @@ cmake -DPICO_SDK_PATH=/path/to/pico-sdk ..
 make
 ```
 
-Default build playback rate is 8192Hz.
-Add `-DENABLE_DOUBLE_SPEED=1` to the cmake command to enable double-speed mode in the Game Boy Color rom and boost playback to 16384Hz.
+Playback rate is determined dynamically from the ROM capabilities.
+Add `-DDISABLE_DOUBLE_SPEED=1` to the cmake command if you prefer to disable double-speed mode in the Game Boy Color rom.
 
 # Pico SDK requirement
 

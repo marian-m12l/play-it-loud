@@ -12,7 +12,8 @@ typedef struct {
     uint8_t* (*playback_buffer)(void);
 } gb_serial_source_t;
 
-void gb_serial_init();
+void gb_serial_init(uint16_t transfer_rate);
+void gb_serial_set_transfer_rate(uint16_t transfer_rate);
 
 void gb_serial_streaming_start(gb_serial_source_t* source);
 void gb_serial_streaming_stop();

@@ -4,6 +4,8 @@ INCLUDE "macros.inc"
 INCLUDE "audio.inc"
 INCLUDE "serial.inc"
 
+DEF workVarDblSpeed EQU $FFF6
+
 
 SECTION "VBlank", ROM0 [$40]
 	reti
@@ -25,12 +27,12 @@ ENDR
 SECTION "Game code", ROM0[$150]
 
 Start:
-	di
-	xor a
-	ldh [rIE], a	; All interrupts OFF
-	ld sp, $FFFF	; Set stack pointer
 
-IF __ENABLE_DOUBLE_SPEED__ == 1
+IF __DISABLE_DOUBLE_SPEED__ == 0
+	; Detect CGB and switch to double speed
+	cp $11
+	jr nz, .skipDoubleSpeed
+
 	; Switch to double speed
 	ld a, $30
 	ldh [rP1], a
@@ -39,7 +41,26 @@ IF __ENABLE_DOUBLE_SPEED__ == 1
 	stop
 	nop
 	nop
+
+	; Store current speed
+	ld a, $01
+	ldh [workVarDblSpeed], a
+	jr .skipNormalSpeed
 ENDC
+
+.skipDoubleSpeed:
+	; Store current speed
+	xor a
+	ldh [workVarDblSpeed], a
+
+.skipNormalSpeed:
+	ldh a, [workVarDblSpeed]
+	or $f8
+	ldh [workVarDblSpeed], a
+
+	xor a
+	ldh [rIE], a	; All interrupts OFF
+	ld sp, $FFFF	; Set stack pointer
 
 .waitvbl:
 	ldh a, [rLY]	; Read current line
@@ -96,21 +117,27 @@ Init:
 	ld hl, _SCRN0+1+(SCRN_VX_B*15)
 	CopyData
 	
-IF __DEBUG__ == 1
 	; Show playback rate
-	ld bc, PlaybackRateDataEnd-PlaybackRateData
-	ld de, PlaybackRateData
+	ldh a, [workVarDblSpeed]
+	bit 0, a
+	jr z, .skipDoubleRate
+	ld bc, PlaybackDoubleRateDataEnd-PlaybackDoubleRateData
+	ld de, PlaybackDoubleRateData
+	jr .skipNormalRate
+.skipDoubleRate:
+	ld bc, PlaybackNormalRateDataEnd-PlaybackNormalRateData
+	ld de, PlaybackNormalRateData
+.skipNormalRate:
 	ld hl, _SCRN0+1+(SCRN_VX_B*16)
 	CopyData
-ENDC
 
-	ld a, %10010011		; Screen on, Background on, tiles at $8000
+	ld a, %10010001		; Screen on, Background on, tiles at $8000, OBJ off
 	ldh [rLCDC], a
 
 	; Wait for "new track" signal on serial
 WaitForNewTrack:
 	; Set constant serial output
-	ld a, $f2
+	ldh a, [workVarDblSpeed]
 	ldh [rSB], a
 
 	; Enable serial external clock / wait for incoming serial data
@@ -169,7 +196,7 @@ UpdateMetadata:
 	CopyDataFromSerial
 
 StartPlayback:
-	ld a, %10010011		; Screen on, Background on, tiles at $8000
+	ld a, %10010001		; Screen on, Background on, tiles at $8000, OBJ off
 	ldh [rLCDC], a
 
 	PlaybackAudioInit
@@ -198,26 +225,16 @@ TilesLogoData:
 TilesLogoDataEnd:
 
 TitleData:
-IF __ENABLE_DOUBLE_SPEED__ == 1
-	db $00, $00, "P"-$20, "L"-$20, "A"-$20, "Y"-$20, $00, "I"-$20, "T"-$20, $00, "L"-$20, "O"-$20, "U"-$20, "D"-$20, "E"-$20, "R"-$20, $00, $00
-ELSE
 	db $00, $00, $00, "P"-$20, "L"-$20, "A"-$20, "Y"-$20, $00, "I"-$20, "T"-$20, $00, "L"-$20, "O"-$20, "U"-$20, "D"-$20, $00, $00, $00
-ENDC
 TitleDataEnd:
 
-IF __DEBUG__ == 1
-PlaybackRateData:
-IF __ENABLE_DOUBLE_SPEED__ == 1
+PlaybackNormalRateData:
+	db $00, $00, $00, "N"-$20, "O"-$20, "R"-$20, "M"-$20, "A"-$20, "L"-$20, $00, "S"-$20, "P"-$20, "E"-$20, "E"-$20, "D"-$20, $00, $00, $00
+PlaybackNormalRateDataEnd:
+
+PlaybackDoubleRateData:
 	db $00, $00, $00, "D"-$20, "O"-$20, "U"-$20, "B"-$20, "L"-$20, "E"-$20, $00, "S"-$20, "P"-$20, "E"-$20, "E"-$20, "D"-$20, $00, $00, $00
-;	db $00, $00, $00, $00, $00, "1"-$20, "6"-$20, "3"-$20, "8"-$20, "4"-$20, $00, "H"-$20, "Z"-$20, $00, $00, $00, $00, $00
-;	db $00, $00, $00, $00, $00, "1"-$20, "2"-$20, "4"-$20, "8"-$20, "3"-$20, $00, "H"-$20, "Z"-$20, $00, $00, $00, $00, $00
-ELSE
-	db $00, $00, $00, "S"-$20, "I"-$20, "N"-$20, "P"-$20, "L"-$20, "E"-$20, $00, "S"-$20, "P"-$20, "E"-$20, "E"-$20, "D"-$20, $00, $00, $00
-;	db $00, $00, $00, $00, $00, "8"-$20, "1"-$20, "9"-$20, "2"-$20, $00, $00, "H"-$20, "Z"-$20, $00, $00, $00, $00, $00
-;	db $00, $00, $00, $00, $00, "6"-$20, "2"-$20, "4"-$20, "1"-$20, $00, $00, "H"-$20, "Z"-$20, $00, $00, $00, $00, $00
-ENDC
-PlaybackRateDataEnd:
-ENDC
+PlaybackDoubleRateDataEnd:
 
 CoverTilemapData:
 	db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00

@@ -4,6 +4,8 @@
 
 #include "gb_serial.h"
 
+#define CPU_FREQ (125000000)
+
 int input;
 
 int dma_channel_tx;
@@ -34,7 +36,7 @@ void __isr __time_critical_func(dma_handler)() {
     }
 }
 
-void gb_serial_init() {
+void gb_serial_init(uint16_t transfer_rate) {
     // Run GB Link at 524288Hz (2 097 152 PIO cycles per second --> clkdiv=59.6046447754 @125MHz)
     // Sending 8 bits takes around 15us, leaving ~145us for the GB to read and process the data
     uint cpha1_cpol1_prog_offs = pio_add_program(pio, &spi_cpha1_cpol1_program);
@@ -46,11 +48,7 @@ void gb_serial_init() {
     channel_config_set_transfer_data_size(&dma_config_tx, DMA_SIZE_8);
     // Triggered by timer
     dma_timer = dma_claim_unused_timer(true);
-#if ENABLE_DOUBLE_SPEED == 1
-    dma_timer_set_fraction(dma_timer, 5, 38147);  // 125000000*5/38147 = 16383.988256Hz
-#else
-    dma_timer_set_fraction(dma_timer, 4, 61035);  // 125000000*4/61035 = 8192.02097157Hz
-#endif
+    dma_timer_set_fraction(dma_timer, 1, CPU_FREQ/transfer_rate);  // CPU_FREQ*1/(CPU_FREQ/transfer_rate) = transfer_rate Hz
     int treq = dma_get_timer_dreq(dma_timer);
     channel_config_set_dreq(&dma_config_tx, treq);
     dma_channel_configure(dma_channel_tx, &dma_config_tx,
@@ -79,6 +77,10 @@ void gb_serial_init() {
     );
     // IRQ
     dma_channel_set_irq0_enabled(dma_channel_rx, true);
+}
+
+void gb_serial_set_transfer_rate(uint16_t transfer_rate) {
+    dma_timer_set_fraction(dma_timer, 1, CPU_FREQ/transfer_rate);  // CPU_FREQ*1/(CPU_FREQ/transfer_rate) = transfer_rate Hz
 }
 
 void gb_serial_streaming_start(gb_serial_source_t* source) {

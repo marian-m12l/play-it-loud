@@ -33,12 +33,6 @@ int main() {
 
     printf("Bluetooth A2DP Sink Player\n");
 
-#if ENABLE_DOUBLE_SPEED == 1
-    printf("Playback rate: 16384Hz\n");
-#else
-    printf("Playback rate: 8192Hz\n");
-#endif
-
     if (cyw43_arch_init()) {
         printf("Failed to init cyw43_arch\n");
         return -1;
@@ -52,8 +46,8 @@ int main() {
     printf("Setup done\n");
 
     // Send default cover on boot
-    gb_serial_init();
-    gb_audio_new_track_blocking(cover_tiles_bt, artist_bt, title_bt);
+    gb_audio_init();
+    gb_audio_new_track_blocking(false, cover_tiles_bt, artist_bt, title_bt);
 
     bt_run();
 }

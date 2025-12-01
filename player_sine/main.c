@@ -20,7 +20,7 @@ bi_decl(bi_3pins_with_names(
 
 #define SINE_WAVE_TABLE_LEN 2048
 static int16_t sine_wave_table[SINE_WAVE_TABLE_LEN];
-#define POLL_RATE_MS 3
+#define POLL_RATE_MS 1
 
 char artist[] = "Sine #0";
 char title[] = "Swiping frequency";
@@ -40,12 +40,6 @@ int main() {
 
     printf("Sine Wave Player\n");
 
-#if ENABLE_DOUBLE_SPEED == 1
-    printf("Playback rate: 16384Hz\n");
-#else
-    printf("Playback rate: 8192Hz\n");
-#endif
-
     // Prepare sine samples
     for (int i = 0; i < SINE_WAVE_TABLE_LEN; i++) {
         sine_wave_table[i] = 32767 * cosf(i * 2 * (float) (M_PI / SINE_WAVE_TABLE_LEN));
@@ -56,13 +50,13 @@ int main() {
     uint vol = 128;
 
     // Configure audio playback
-    gb_serial_init();
+    gb_audio_init();
 
-    gb_audio_new_track_blocking(cover_tiles_sine, artist, title);
+    gb_audio_new_track_blocking(false, cover_tiles_sine, artist, title);
 
     // Start streaming
     printf("Start streaming audio samples\n");
-    gb_audio_streaming_start();
+    gb_audio_streaming_start(44100, 44);
 
     uint64_t timestamp = time_us_64();
 
@@ -89,10 +83,10 @@ int main() {
             gb_audio_streaming_stop();
 
             update_metadata();
-            gb_audio_new_track_blocking(cover_tiles_sine, artist, title);
+            gb_audio_new_track_blocking(true, cover_tiles_sine, artist, title);
 
             printf("Start streaming audio samples\n");
-            gb_audio_streaming_start();
+            gb_audio_streaming_start(44100, 44);
         }
     }
 }
