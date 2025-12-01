@@ -14,6 +14,7 @@ add_executable(${PROJECT_NAME}
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     BT_PIN="0000"
     BT_NAME="Play it loud!"
+    ENABLE_COVER_ART=0
 )
 
 target_link_libraries(${PROJECT_NAME}

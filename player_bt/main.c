@@ -6,7 +6,9 @@
 #include "pico/cyw43_arch.h"
 
 #include "gb_serial.h"
+#include "gb_audio.h"
 #include "bt.h"
+#include "cover.h"
 
 // Declare pins in binary info
 bi_decl(bi_3pins_with_names(
@@ -14,6 +16,9 @@ bi_decl(bi_3pins_with_names(
     PIN_SERIAL_MISO, "GB Serial IN",
     PIN_SERIAL_MOSI, "GB Serial OUT"
 ));
+
+char artist_bt[] = "Bluetooth";
+char title_bt[] = "A2DP / AVRCP Sink";
 
 void on_bt_up( void * ) {
     printf("Bluetooth stack is up\n");
@@ -23,6 +28,8 @@ void on_bt_up( void * ) {
 
 int main() {
     stdio_init_all();
+
+    sleep_ms(1000);
 
     printf("Bluetooth A2DP Sink Player\n");
 
@@ -34,8 +41,13 @@ int main() {
     // LED ON during setup until bt is up
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, true);
 
-    bt_begin(BT_NAME, BT_PIN, on_bt_up, NULL);
+    bt_begin(BT_NAME, BT_PIN, on_bt_up, NULL, cover_tiles_bt);
 
     printf("Setup done\n");
+
+    // Send default cover on boot
+    gb_audio_init();
+    gb_audio_new_track_blocking(false, cover_tiles_bt, artist_bt, title_bt);
+
     bt_run();
 }

@@ -4,6 +4,8 @@
 
 #include "gb_serial.h"
 
+#define CPU_FREQ (125000000)
+
 int input;
 
 int dma_channel_tx;
@@ -34,11 +36,11 @@ void __isr __time_critical_func(dma_handler)() {
     }
 }
 
-void gb_serial_init() {
+void gb_serial_init(uint16_t transfer_rate) {
     // Run GB Link at 524288Hz (2 097 152 PIO cycles per second --> clkdiv=59.6046447754 @125MHz)
     // Sending 8 bits takes around 15us, leaving ~145us for the GB to read and process the data
-    uint cpha1_prog_offs = pio_add_program(pio, &spi_cpha1_program);
-    pio_spi_init(pio, sm, cpha1_prog_offs, 8, 59.6046447754, 1, PIN_SERIAL_CLOCK, PIN_SERIAL_MOSI, PIN_SERIAL_MISO);
+    uint cpha1_cpol1_prog_offs = pio_add_program(pio, &spi_cpha1_cpol1_program);
+    pio_spi_init(pio, sm, cpha1_cpol1_prog_offs, 8, 59.6046447754, PIN_SERIAL_CLOCK, PIN_SERIAL_MOSI, PIN_SERIAL_MISO);
 
     // TX DMA
     dma_channel_tx = dma_claim_unused_channel(true);
@@ -46,7 +48,7 @@ void gb_serial_init() {
     channel_config_set_transfer_data_size(&dma_config_tx, DMA_SIZE_8);
     // Triggered by timer
     dma_timer = dma_claim_unused_timer(true);
-    dma_timer_set_fraction(dma_timer, 3, 60088);  // 125000000*3/60088 = 6240.8467...Hz
+    dma_timer_set_fraction(dma_timer, 1, CPU_FREQ/transfer_rate);  // CPU_FREQ*1/(CPU_FREQ/transfer_rate) = transfer_rate Hz
     int treq = dma_get_timer_dreq(dma_timer);
     channel_config_set_dreq(&dma_config_tx, treq);
     dma_channel_configure(dma_channel_tx, &dma_config_tx,
@@ -70,11 +72,15 @@ void gb_serial_init() {
     dma_channel_configure(dma_channel_rx, &dma_config_rx,
         &input,                 // write address
         &pio->rxf[sm],          // read address
-        0xffffffff,             // element count (each element is of size transfer_data_size)
+        dma_encode_transfer_count(0x0fffffff),  // element count (each element is of size transfer_data_size)
         true                    // start immediately
     );
     // IRQ
     dma_channel_set_irq0_enabled(dma_channel_rx, true);
+}
+
+void gb_serial_set_transfer_rate(uint16_t transfer_rate) {
+    dma_timer_set_fraction(dma_timer, 1, CPU_FREQ/transfer_rate);  // CPU_FREQ*1/(CPU_FREQ/transfer_rate) = transfer_rate Hz
 }
 
 void gb_serial_streaming_start(gb_serial_source_t* source) {
@@ -105,4 +111,8 @@ void gb_serial_immediate_transfer(const uint8_t* data, uint16_t length) {
 
 bool gb_serial_transfer_done() {
     return !dma_channel_is_busy(dma_channel_tx);
+}
+
+uint8_t gb_serial_received() {
+    return input;
 }

@@ -2,19 +2,16 @@ INCLUDE "hardware.inc"
 INCLUDE "ibmpc1.inc"
 INCLUDE "macros.inc"
 INCLUDE "audio.inc"
-INCLUDE "timer.inc"
 INCLUDE "serial.inc"
+
+DEF workVarDblSpeed EQU $FFF6
 
 
 SECTION "VBlank", ROM0 [$40]
 	reti
 
-SECTION "Timer", ROM0[$50]
-	jp TimerISR
-
 SECTION "Serial", ROM0 [$58]
 	jp SerialISR
-
 
 SECTION "Header", ROM0[$100]
 
@@ -30,7 +27,37 @@ ENDR
 SECTION "Game code", ROM0[$150]
 
 Start:
-	di
+
+IF __DISABLE_DOUBLE_SPEED__ == 0
+	; Detect CGB and switch to double speed
+	cp $11
+	jr nz, .skipDoubleSpeed
+
+	; Switch to double speed
+	ld a, $30
+	ldh [rP1], a
+	ld a, $01
+	ldh [rKEY1], a
+	stop
+	nop
+	nop
+
+	; Store current speed
+	ld a, $01
+	ldh [workVarDblSpeed], a
+	jr .skipNormalSpeed
+ENDC
+
+.skipDoubleSpeed:
+	; Store current speed
+	xor a
+	ldh [workVarDblSpeed], a
+
+.skipNormalSpeed:
+	ldh a, [workVarDblSpeed]
+	or $f8
+	ldh [workVarDblSpeed], a
+
 	xor a
 	ldh [rIE], a	; All interrupts OFF
 	ld sp, $FFFF	; Set stack pointer
@@ -89,12 +116,30 @@ Init:
 	ld de, TitleData
 	ld hl, _SCRN0+1+(SCRN_VX_B*15)
 	CopyData
+	
+	; Show playback rate
+	ldh a, [workVarDblSpeed]
+	bit 0, a
+	jr z, .skipDoubleRate
+	ld bc, PlaybackDoubleRateDataEnd-PlaybackDoubleRateData
+	ld de, PlaybackDoubleRateData
+	jr .skipNormalRate
+.skipDoubleRate:
+	ld bc, PlaybackNormalRateDataEnd-PlaybackNormalRateData
+	ld de, PlaybackNormalRateData
+.skipNormalRate:
+	ld hl, _SCRN0+1+(SCRN_VX_B*16)
+	CopyData
 
-	ld a, %10010011		; Screen on, Background on, tiles at $8000
+	ld a, %10010001		; Screen on, Background on, tiles at $8000, OBJ off
 	ldh [rLCDC], a
 
 	; Wait for "new track" signal on serial
 WaitForNewTrack:
+	; Set constant serial output
+	ldh a, [workVarDblSpeed]
+	ldh [rSB], a
+
 	; Enable serial external clock / wait for incoming serial data
 	ld a, $80
 	ldh [rSC], a
@@ -110,9 +155,7 @@ WaitForNewTrack:
 	
 	; Trigger reset
 	cp $f1
-	jp z, NewTrack
-	
-	; Loop
+	; Or loop
 	jr nz, WaitForNewTrack
 
 
@@ -152,25 +195,20 @@ UpdateMetadata:
 	ld hl, _SCRN0+1+(SCRN_VX_B*16)
 	CopyDataFromSerial
 
-	ld a, %10010011		; Screen on, Background on, tiles at $8000
+StartPlayback:
+	ld a, %10010001		; Screen on, Background on, tiles at $8000, OBJ off
 	ldh [rLCDC], a
 
 	PlaybackAudioInit
 	PlaybackTimerInit
 	PlaybackSerialInit
-	ClearAudioBuffers
-
-	ReadySerial
-	ReadyTimer
 
 	ei
 
 .waitforInt:
+	halt
 	jr .waitforInt
 
-
-TimerISR:
-	PlaybackTimerISR
 
 SerialISR:
 	PlaybackSerialISR
@@ -189,6 +227,14 @@ TilesLogoDataEnd:
 TitleData:
 	db $00, $00, $00, "P"-$20, "L"-$20, "A"-$20, "Y"-$20, $00, "I"-$20, "T"-$20, $00, "L"-$20, "O"-$20, "U"-$20, "D"-$20, $00, $00, $00
 TitleDataEnd:
+
+PlaybackNormalRateData:
+	db $00, $00, $00, "N"-$20, "O"-$20, "R"-$20, "M"-$20, "A"-$20, "L"-$20, $00, "S"-$20, "P"-$20, "E"-$20, "E"-$20, "D"-$20, $00, $00, $00
+PlaybackNormalRateDataEnd:
+
+PlaybackDoubleRateData:
+	db $00, $00, $00, "D"-$20, "O"-$20, "U"-$20, "B"-$20, "L"-$20, "E"-$20, $00, "S"-$20, "P"-$20, "E"-$20, "E"-$20, "D"-$20, $00, $00, $00
+PlaybackDoubleRateDataEnd:
 
 CoverTilemapData:
 	db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
@@ -220,11 +266,3 @@ vFontTiles:
 vCoverTiles:
 	ds 14 * 13 * 16
 vCoverTilesEnd:
-
-
-SECTION	"Variables", WRAMX
-
-ALIGN 8
-wBuffer0:		DS	$400
-wBuffer1:		DS	$400
-wBuffersEnd:
