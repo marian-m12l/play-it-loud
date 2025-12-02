@@ -92,7 +92,9 @@ static void btstack_audio_pico_sink_start_stream(void) {
         btstack_audio_pico_sink_active = true;
 
         // Start streaming
-        gb_audio_streaming_start(44100, 220);
+        int buffers_size = (int) (10 * gb_audio_playback_rate() / 1000.0f); // Each output buffer holds 10 milliseconds worth of samples
+        printf("Start streaming audio samples\n");
+        gb_audio_streaming_start(44100, buffers_size);
 
         // FIXME Need to pre-fill _after_ audio stream started, otherwise downsampler and encoder are not initialized
         // pre-fill HAL buffers

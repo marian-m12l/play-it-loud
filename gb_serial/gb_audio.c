@@ -72,6 +72,10 @@ void gb_audio_init() {
     gb_serial_set_transfer_rate(playback_rate);
 }
 
+uint16_t gb_audio_playback_rate() {
+    return playback_rate;
+}
+
 void gb_audio_new_track_step1() {
     timestamp = time_us_64();
     gb_serial_immediate_transfer(&reset_trigger, 1);
@@ -121,9 +125,9 @@ void gb_audio_new_track_blocking(bool reset, const uint8_t* cover_tiles, const c
     }
 }
 
-// FIXME buffer size in ms ??
 void gb_audio_streaming_start(uint16_t input_sample_rate, int output_buffers_size) {
     // FIXME Assert input_sample_rate >= playback_rate
+    printf("gb_audio_streaming_start: input_sample_rate=%d output_buffers_size=%d\n", input_sample_rate, output_buffers_size);
     downsample_init(&downsampler_instance, input_sample_rate, playback_rate);
     encode_init(&encoder_instance);
     for (int i=0; i<BUFFER_COUNT; i++) {

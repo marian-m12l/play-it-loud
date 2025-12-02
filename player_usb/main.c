@@ -44,8 +44,9 @@ int main(void) {
     gb_audio_new_track_blocking(false, cover_tiles_usb, artist, title);
 
     // Start streaming
+    int buffers_size = (int) (2 * gb_audio_playback_rate() / 1000.0f);  // Each output buffer holds 2 milliseconds worth of samples
     printf("Start streaming audio samples\n");
-    gb_audio_streaming_start(44100, 44);
+    gb_audio_streaming_start(44100, buffers_size);
 
     while (true) {
         usb_audio_tasks();

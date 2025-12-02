@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 void gb_audio_init();
+uint16_t gb_audio_playback_rate();
 
 void gb_audio_new_track_step1();
 bool gb_audio_new_track_step1_done();

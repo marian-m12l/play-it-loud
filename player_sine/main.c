@@ -55,8 +55,9 @@ int main() {
     gb_audio_new_track_blocking(false, cover_tiles_sine, artist, title);
 
     // Start streaming
+    int buffers_size = (int) (2 * gb_audio_playback_rate() / 1000.0f);  // Each output buffer holds 2 milliseconds worth of samples
     printf("Start streaming audio samples\n");
-    gb_audio_streaming_start(44100, 44);
+    gb_audio_streaming_start(44100, buffers_size);
 
     uint64_t timestamp = time_us_64();
 
@@ -85,8 +86,9 @@ int main() {
             update_metadata();
             gb_audio_new_track_blocking(true, cover_tiles_sine, artist, title);
 
+            int buffers_size = (int) (2 * gb_audio_playback_rate() / 1000.0f);  // Each output buffer holds 2 milliseconds worth of samples
             printf("Start streaming audio samples\n");
-            gb_audio_streaming_start(44100, 44);
+            gb_audio_streaming_start(44100, buffers_size);
         }
     }
 }
