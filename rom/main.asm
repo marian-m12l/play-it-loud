@@ -1,10 +1,15 @@
 INCLUDE "hardware.inc"
 INCLUDE "ibmpc1.inc"
 INCLUDE "macros.inc"
+INCLUDE "variables.inc"
+
+IF __DISABLE_HQ_ENCODING__ == 0
+INCLUDE "audio_hq.inc"
+INCLUDE "serial_hq.inc"
+ELSE
 INCLUDE "audio.inc"
 INCLUDE "serial.inc"
-
-DEF workVarDblSpeed EQU $FFF6
+ENDC
 
 
 SECTION "VBlank", ROM0 [$40]
@@ -44,19 +49,23 @@ IF __DISABLE_DOUBLE_SPEED__ == 0
 
 	; Store current speed
 	ld a, $01
-	ldh [workVarDblSpeed], a
+	ldh [workVarCapabilities], a
 	jr .skipNormalSpeed
 ENDC
 
 .skipDoubleSpeed:
 	; Store current speed
 	xor a
-	ldh [workVarDblSpeed], a
+	ldh [workVarCapabilities], a
 
 .skipNormalSpeed:
-	ldh a, [workVarDblSpeed]
+	ldh a, [workVarCapabilities]
+IF __DISABLE_HQ_ENCODING__ == 0
+	or $fa
+ELSE
 	or $f8
-	ldh [workVarDblSpeed], a
+ENDC
+	ldh [workVarCapabilities], a
 
 	xor a
 	ldh [rIE], a	; All interrupts OFF
@@ -118,7 +127,7 @@ Init:
 	CopyData
 	
 	; Show playback rate
-	ldh a, [workVarDblSpeed]
+	ldh a, [workVarCapabilities]
 	bit 0, a
 	jr z, .skipDoubleRate
 	ld bc, PlaybackDoubleRateDataEnd-PlaybackDoubleRateData
@@ -136,8 +145,8 @@ Init:
 
 	; Wait for "new track" signal on serial
 WaitForNewTrack:
-	; Set constant serial output
-	ldh a, [workVarDblSpeed]
+	; Set serial output with rom capabilities
+	ldh a, [workVarCapabilities]
 	ldh [rSB], a
 
 	; Enable serial external clock / wait for incoming serial data

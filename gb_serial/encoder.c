@@ -1,4 +1,5 @@
 // Original work by jbshelton: https://github.com/jbshelton/GBAudioPlayer
+// Original work by jbshelton: https://github.com/jbshelton/GBAudioPlayerV3
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -129,11 +130,100 @@ unsigned char check2(unsigned char lastconfig, unsigned char thisconfig)
     return check3(currtemp, prevtemp, curr8bit, prev8bit);
 }
 
+
+void init_hq_lut(hq_lut_t* hq_lut)
+{
+    for(int i=0; i<256; i++)
+    {
+        hq_lut->pulse_lut[i] = 0;
+        hq_lut->mv_lut[i] = 0;
+        hq_lut->amp_lut[i] = -1;
+    }
+}
+
+void generate_hq_lut(hq_lut_t* hq_lut)
+{
+    init_hq_lut(hq_lut);
+    
+    int pulse = 0;
+    int uniqueamps = 0;
+    int outamp = 0;
+
+    for(int m=0; m<8; m++)
+    {
+        for(int p=0; p<8; p++)
+        {
+            pulse = (p*-1)-1;
+            pulse = (pulse*2)+1;
+            outamp = (int)(128.0+((128.0/120.0)*((double)(pulse*(m+1)))));
+
+            if(hq_lut->amp_lut[outamp]==-1)
+            {   
+                uniqueamps++;
+                hq_lut->pulse_lut[outamp] = (uint8_t)(7-p);
+                hq_lut->mv_lut[outamp] = (uint8_t)m;
+                hq_lut->amp_lut[outamp] = outamp;
+            }
+
+            pulse = p+1;
+            pulse = (pulse*2)-1;
+            outamp = (int)(127.0+((128.0/120.0)*((double)(pulse*(m+1)))));
+
+            if(hq_lut->amp_lut[outamp]==-1)
+            {   
+                uniqueamps++;
+                hq_lut->pulse_lut[outamp] = (uint8_t)(p+8);
+                hq_lut->mv_lut[outamp] = (uint8_t)m;
+                hq_lut->amp_lut[outamp] = outamp;
+            }
+        }
+    }
+    uint8_t temp_mv, temp_pulse;
+    temp_pulse = 0;
+    temp_mv = 0;
+    int temp_amp;
+    temp_amp = 0;
+
+    for(int i=0; i<128; i++)
+    {
+        if(hq_lut->amp_lut[i]==i)
+        {
+            temp_pulse = hq_lut->pulse_lut[i];
+            temp_mv = hq_lut->mv_lut[i];
+            temp_amp = hq_lut->amp_lut[i];
+        }
+        else
+        {
+            hq_lut->pulse_lut[i] = temp_pulse;
+            hq_lut->mv_lut[i] = temp_mv;
+            hq_lut->amp_lut[i] = temp_amp;
+        }
+    }
+
+    for(int i=255; i>=128; i--)
+    {
+        if(hq_lut->amp_lut[i]==i)
+        {
+            temp_pulse = hq_lut->pulse_lut[i];
+            temp_mv = hq_lut->mv_lut[i];
+            temp_amp = hq_lut->amp_lut[i];
+        }
+        else
+        {
+            hq_lut->pulse_lut[i] = temp_pulse;
+            hq_lut->mv_lut[i] = temp_mv;
+            hq_lut->amp_lut[i] = temp_amp;
+        }
+    }
+}
+
+
 void encode_init(encoder_t* instance) {
     instance->samples = 0;
     instance->curr_config = 0;
     instance->prev_config = 0;
     instance->curr_sample = 0;
+    generate_hq_lut(&instance->hq_lut);
 }
 
 void encode(encoder_t* instance, const unsigned char input[], unsigned char * output, int length) {
@@ -158,6 +248,15 @@ void encode(encoder_t* instance, const unsigned char input[], unsigned char * ou
             }
         }
         instance->prev_config = instance->curr_config;
+    }
+    instance->samples += length;
+}
+
+
+void encode_hq(encoder_t* instance, const unsigned char input[], unsigned char * output, int length) {
+    for(int i=0; i < length; i++) {
+        unsigned char sample = input[i];
+        output[i] = ((instance->hq_lut.pulse_lut[sample] & 0x0f) << 4) | (instance->hq_lut.mv_lut[sample] & 0x07);
     }
     instance->samples += length;
 }

@@ -23,6 +23,9 @@ make
 Playback rate is determined dynamically from the ROM capabilities.
 Add `-DDISABLE_DOUBLE_SPEED=1` to the cmake command if you prefer to disable double-speed mode in the Game Boy Color rom.
 
+Playback encoding is determined dynamically from the ROM capabilities.
+Add `-DDISABLE_HQ_ENCODING=1` to the cmake command if you prefer to disable high-quality encoding in the Game Boy Color rom.
+
 # Pico SDK requirement
 
 Firmware `player_usb` (audio interface) requires tinyusb >=0.19.0 --> checkout tag `0.19.0` in `${PICO_SDK_PATH}$/lib/tinyusb`.

@@ -10,8 +10,8 @@
 
 #include "gb_audio.h"
 
-#define OUTPUT_SAMPLE_RATE_DOUBLE_SPEED 22050
-#define OUTPUT_SAMPLE_RATE_NORMAL_SPEED 8192
+#define OUTPUT_SAMPLE_RATE_BASE 11025
+#define OUTPUT_SAMPLE_RATE_BASE_HQ 16000
 
 #define COVER_TILES_BYTES (14*13*16)
 #define RESET_TRIGGER_DELAY_MS 100
@@ -32,6 +32,7 @@ char metadata[METADATA_LENGTH];
 uint64_t timestamp;
 
 uint16_t playback_rate;
+bool playback_hq;
 
 
 void swap() {
@@ -56,7 +57,17 @@ void gb_audio_init() {
         tight_loop_contents();
     }
     uint8_t capabilities = gb_serial_received();
-    playback_rate = (capabilities & 0x01) ? OUTPUT_SAMPLE_RATE_DOUBLE_SPEED : OUTPUT_SAMPLE_RATE_NORMAL_SPEED;
+    // HQ encoding
+    playback_hq = (capabilities & 0x02);
+    printf("Audio playback HQ: %d\n", playback_hq);
+    if (playback_hq) {
+        reset_trigger = 0xff;
+    }
+    playback_rate = playback_hq ? OUTPUT_SAMPLE_RATE_BASE_HQ : OUTPUT_SAMPLE_RATE_BASE;
+    // Double speed
+    if (capabilities & 0x01) {
+        playback_rate *= 2;
+    }
     printf("Audio playback rate: %d Hz\n", playback_rate);
     gb_serial_set_transfer_rate(playback_rate);
 }
@@ -152,7 +163,11 @@ void gb_audio_streaming_fill_buffer(int16_t* samples) {
         convertedAudioData[i] = (downsampledAudioData[i] + 32768) >> 8;
     }
     // Encode
-    encode(&encoder_instance, convertedAudioData, samples_buffers[filling_buffer], downsampler_instance.samples-samples_before);
+    if (playback_hq) {
+        encode_hq(&encoder_instance, convertedAudioData, samples_buffers[filling_buffer], downsampler_instance.samples-samples_before);
+    } else {
+        encode(&encoder_instance, convertedAudioData, samples_buffers[filling_buffer], downsampler_instance.samples-samples_before);
+    }
 
     free(downsampledAudioData);
     free(convertedAudioData);

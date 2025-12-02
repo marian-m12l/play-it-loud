@@ -21,6 +21,12 @@ if(NOT DISABLE_DOUBLE_SPEED)
 endif()
 add_compile_definitions(DISABLE_DOUBLE_SPEED=${DISABLE_DOUBLE_SPEED})
 
+# Set playback encoding
+if(NOT DISABLE_HQ_ENCODING)
+    set(DISABLE_HQ_ENCODING 0)
+endif()
+add_compile_definitions(DISABLE_HQ_ENCODING=${DISABLE_HQ_ENCODING})
+
 add_subdirectory(gb_serial)
 add_subdirectory(jpegdec)
 add_subdirectory(player_sine)
@@ -30,3 +36,4 @@ add_subdirectory(player_usb)
 add_subdirectory(rom)
 
 unset(DISABLE_DOUBLE_SPEED CACHE)
+unset(DISABLE_HQ_ENCODING CACHE)
