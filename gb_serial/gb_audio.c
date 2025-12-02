@@ -127,7 +127,7 @@ void gb_audio_new_track_blocking(bool reset, const uint8_t* cover_tiles, const c
 
 void gb_audio_streaming_start(uint16_t input_sample_rate, int output_buffers_size) {
     // FIXME Assert input_sample_rate >= playback_rate
-    printf("gb_audio_streaming_start: input_sample_rate=%d output_buffers_size=%d\n", input_sample_rate, output_buffers_size);
+    //printf("gb_audio_streaming_start: input_sample_rate=%d output_buffers_size=%d\n", input_sample_rate, output_buffers_size);
     downsample_init(&downsampler_instance, input_sample_rate, playback_rate);
     encode_init(&encoder_instance);
     for (int i=0; i<BUFFER_COUNT; i++) {
