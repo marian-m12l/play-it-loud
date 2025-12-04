@@ -5,7 +5,7 @@
 ;
 
 .program spi_cpha1_cpol1
-.side_set 1
+.side_set 1 opt
 
 ; Clock phase = 1: data transitions on the leading edge of each SCK pulse, and
 ; is captured on the trailing edge.
@@ -16,26 +16,6 @@
 
 % c-sdk {
 #include "hardware/gpio.h"
-
-// Patched pio_sm_init: side-set initialized high
-int patched_pio_sm_init(PIO pio, uint sm, uint initial_pc, const pio_sm_config *config) {
-    pio_sm_set_enabled(pio, sm, false);
-    int rc = pio_sm_set_config(pio, sm, config);
-    if (rc) return rc;
-    pio_sm_clear_fifos(pio, sm);
-    // Clear FIFO debug flags
-    const uint32_t fdebug_sm_mask =
-            (1u << PIO_FDEBUG_TXOVER_LSB) |
-            (1u << PIO_FDEBUG_RXUNDER_LSB) |
-            (1u << PIO_FDEBUG_TXSTALL_LSB) |
-            (1u << PIO_FDEBUG_RXSTALL_LSB);
-    pio->fdebug = fdebug_sm_mask << sm;
-    // Finally, clear some internal SM state
-    pio_sm_restart(pio, sm);
-    pio_sm_clkdiv_restart(pio, sm);
-    pio_sm_exec(pio, sm, pio_encode_jmp(initial_pc) | pio_encode_sideset(1, 1));
-    return PICO_OK;
-}
 
 static inline void pio_spi_init(PIO pio, uint sm, uint prog_offs, uint n_bits,
         float clkdiv, uint pin_sck, uint pin_mosi, uint pin_miso) {
@@ -58,9 +38,11 @@ static inline void pio_spi_init(PIO pio, uint sm, uint prog_offs, uint n_bits,
     // SPI is synchronous, so bypass input synchroniser to reduce input delay.
     hw_set_bits(&pio->input_sync_bypass, 1u << pin_miso);
 
-    // WARNING: pio_sm_init executes a jmp instruction WITHOUT side-set, which makes the clock fall low for a short time
-    // Use a patched version of pio_sm_init
-    patched_pio_sm_init(pio, sm, prog_offs, &c);
+    // Side-set pin starts high.
+    // Since side-set is optional, we can simply use unpatched pio_sm_init (which executes a jmp instruction WITHOUT side-set)
+    // without making the clock fall low before pio program starts
+    pio_sm_init(pio, sm, prog_offs, &c);
+
     pio_sm_set_enabled(pio, sm, true);
 }
 %}
